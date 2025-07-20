@@ -1,0 +1,5 @@
+colorama==0.4.6
+requests==2.32.3
+ruamel.yaml==0.17.21
+pyyaml==6.0.1
+dotenv==0.9.9

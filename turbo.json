@@ -16,6 +16,10 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "make": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
