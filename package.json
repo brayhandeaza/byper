@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "make": "turbo run make --filter=byper",
-    "dev": "turbo run dev --filter=byper-test"
+    "dev": "turbo run dev --filter=byper-test",
+    "start": "turbo run dev --filter=web"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
@@ -15,6 +16,7 @@
   },
   "packageManager": "yarn@1.22.22",
   "workspaces": [
-    "apps/python/*"
+    "apps/python/*",
+    "apps/web"
   ]
 }
