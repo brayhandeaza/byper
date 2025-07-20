@@ -1,0 +1,9 @@
+name: test
+
+scripts:
+  start: python main.py
+
+dependencies:
+  uvicorn: 0.35.0
+  fastapi: 0.116.1
+

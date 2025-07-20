@@ -2,12 +2,8 @@
   "name": "turbo",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "make": "turbo run make",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "make": "turbo run make --filter=byper",
+    "dev": "turbo run dev --filter=byper-test"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
@@ -19,7 +15,6 @@
   },
   "packageManager": "yarn@1.22.22",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "apps/python/*"
   ]
 }
