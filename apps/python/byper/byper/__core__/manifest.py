@@ -20,6 +20,10 @@ class Manifest:
     @staticmethod
     def save_manifest(data: dict):
         name = data.pop("name", None)
+        version = data.pop("version", None)
+        entry = data.pop("entry", None)
+        license = data.pop("license", None)
+
         scripts = data.pop("scripts", None)
         aliases = data.pop("aliases", None)
         tasks = data.pop("tasks", None)
@@ -27,6 +31,10 @@ class Manifest:
 
         manifest = {
             "name": name,
+            "version": version,
+            "entry": entry,
+            "license": license,
+
             "scripts": scripts,
             "aliases": aliases,
             "tasks": tasks,
@@ -44,20 +52,30 @@ class Manifest:
                 if not value:
                     continue
 
-                if key == "name":
-                    yaml.dump({key: value}, f)
+                if key in ["scripts", "aliases", "tasks", "dependencies"]:
                     f.write("\n")
 
-                else:
-                    yaml.dump({key: value}, f)
-                    if value:
-                        f.write("\n")
+                yaml.dump({key: value}, f)
+
+                # if key in ["name", "version", "entry", "license"]:
+                #     yaml.dump({key: value}, f)
+                #     f.write("\n")
+
+                # else:
+                #     yaml.dump({key: value}, f)
+                #     if value:
+                #         f.write("\n")
 
     @staticmethod
     def load_requirements_manifest():
         if not os.path.exists(REQUIREMENTS_FILE):
             return {
-                "name": "",
+                "name": None,
+                "description": None,
+                "version": None,
+                "entry": None,
+                "license": None,
+                "author": None,
                 "scripts": {},
                 "aliases": {},
                 "tasks": {},
@@ -70,7 +88,13 @@ class Manifest:
             data = yaml.load(f) or {}
 
         return {
-            "name": data.get("name", ""),
+            "name": data.get("name"),
+            "description": data.get("description"),
+            "version": data.get("version"),
+            "entry": data.get("entry"),
+            "license": data.get("license"),
+            "author": data.get("author"),
+
             "scripts": dict(data.get("scripts", {}) or {}),
             "aliases": dict(data.get("aliases", {}) or {}),
             "tasks": dict(data.get("tasks", {}) or {}),

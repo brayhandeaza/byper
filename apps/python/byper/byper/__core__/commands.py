@@ -109,15 +109,9 @@ class Commands:
         subparsers = parser.add_subparsers(dest="command")
 
         parser.error = lambda _: Commands.print_help()
-
-        parser.add_argument(
-            "-h", "--help", action="store_true", help="Show help")
-        parser.add_argument(
-            "--u-all",
-            "--upgrate-all",
-            action="store_true",
-            help="Upgrade all packages to latest version",
-        )
+        parser.add_argument("-h", "--help", action="store_true", help="Show help")
+        parser.add_argument("--u-all", "--upgrate-all", action="store_true", help="Upgrade all packages to latest version")
+        parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
@@ -130,35 +124,19 @@ class Commands:
         tasks_parser = subparsers.add_parser("task", help="Run task ")
         tasks_parser.add_argument("name")
 
-        parser.add_argument(
-            "-v", "--version", help="Print byper version", action="store_true"
-        )
-
-        init_parser = subparsers.add_parser(
-            "init", help="Initialize byper project")
+        init_parser = subparsers.add_parser("init", help="Initialize byper project")
         init_parser.add_argument("name", nargs="?", default=None)
+        init_parser.add_argument("-y", action="store_true", help="Skip confirmation prompt")
 
-        add_parser = subparsers.add_parser(
-            "add", help="Add package to dependencies")
+        add_parser = subparsers.add_parser("add", help="Add package to dependencies")
         add_parser.add_argument("packages", nargs="+")
-        add_parser.add_argument(
-            "--no-cache",
-            action="store_true",
-            help="Don't use cached packages",
-        )
-        add_parser.add_argument(
-            "--upgrade",
-            "-u",
-            action="store_true",
-            help="Upgrade packages to latest version",
-        )
+        add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
+        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version",)
 
         run_parser = subparsers.add_parser("run", help="Run script")
         run_parser.add_argument("script")
 
-        remove_parser = subparsers.add_parser(
-            "remove", help="Remove package from dependencies"
-        )
+        remove_parser = subparsers.add_parser("remove", help="Remove package from dependencies")
         remove_parser.add_argument("packages", nargs="+")
 
         return parser
@@ -189,7 +167,10 @@ class Commands:
             Logger.log(f"\n🔄 Upgrading: {package}", indent=2)
             try:
                 process = subprocess.Popen(
-                    args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                    args,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
                 )
 
                 for line in process.stdout:
@@ -343,34 +324,59 @@ class Commands:
         Installation.reinstall_from_requirements()
 
     @staticmethod
-    def init(name: str = None):
+    def init(name: str = None, skip: bool = False):
         if name:
             os.makedirs(name, exist_ok=True)
             os.chdir(name)
 
         if not os.path.exists(REQUIREMENTS_FILE):
             project_name = name or os.path.basename(os.getcwd())
-            name = (
-                input(f"Project name (default = {project_name}): ").strip()
-                or project_name
-            )
 
-            entry = input(
-                "Entry point (default = main.py): ").strip() or "main.py"
+            name = project_name
+            version = "0.0.1"
+            description = None
+            entry = "main.py"
+            author = None
+            license = "MIT"
 
-            Manifest.save_manifest(
-                {
-                    "name": project_name,
-                    "scripts": {"start": f"python {entry}"},
-                }
-            )
+            if not skip:
+                name = input(f"name (default = {project_name}): ").strip() or project_name
+                version = input(f"version (default = 0.0.1): ").strip() or "0.0.1"
+                description = input(f"description: ").strip() or None
+                entry = input("entry file (default = main.py): ").strip() or "main.py"
+                author = input("author: ").strip() or None
+                license = input("license (default = MIT): ").strip() or "MIT"
 
+            manifest = {
+                "name": project_name,
+                "version": version,
+                "description": description,
+                "entry": entry,
+                "author": author,
+                "license": license,
+                "scripts": {"start": f"python {entry}"},
+            }
+
+            Manifest.save_manifest(manifest)
             Environment.ensure_dirs()
+
             with open(entry, "w") as f:
                 f.write("print('Hello, world!')")
 
-            print(
-                f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
+            process = subprocess.Popen(
+                ["git", "init"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            process.wait()
+
+            Logger.log(f"📝 Git repository:")
+            for line in process.stdout:
+                Logger.log(f"→ {line.strip()}", level="command", indent=1)
+
+            print(f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
         else:
             Logger.log(
                 f"{REQUIREMENTS_FILE} manifest already exists in {os.getcwd()}")

@@ -1,8 +1,0 @@
-{
-  "name": "byper-test",
-  "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "dev": "uvicorn main:app  --reload --port=8000"
-  }
-}

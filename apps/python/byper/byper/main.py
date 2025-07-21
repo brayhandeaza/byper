@@ -22,7 +22,7 @@ def cli():
         Environment.find_nested_venv()
 
     if args.command == "init":
-        Commands.init(args.name)
+        Commands.init(args.name, args.y)
 
     elif args.command == "task":
         Commands.run_task(args.name)
