@@ -3,6 +3,9 @@ version: 0.0.1
 entry: main.py
 license: MIT
 
+aliases:
+  say_hello: start.say_hello
+
 scripts:
   start: python main.py
 
