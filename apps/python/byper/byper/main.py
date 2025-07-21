@@ -5,7 +5,6 @@ from byper.__core__.commands import Commands
 from byper.__core__.environment import Environment
 from byper.__core__.helpers import generate_aliases_pyi, generate_env_stub, generate_tasks_stub
 
-
 Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
 
 
