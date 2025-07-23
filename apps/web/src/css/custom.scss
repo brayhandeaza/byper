@@ -18,7 +18,7 @@
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
-[data-theme='dark'] {
+[data-theme="dark"] {
   --ifm-color-primary: #25c2a0;
   --ifm-color-primary-dark: #21af90;
   --ifm-color-primary-darker: #1fa588;
@@ -27,4 +27,60 @@
   --ifm-color-primary-lighter: #32d8b4;
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.code-block-shell {
+  // width: 250px;
+  height: 50px;
+  color: #bebebe !important;
+  border: 0.1px solid rgba(82, 82, 82, 0.38) !important;
+}
+
+.code-block-shell .plain {
+  color: #434343 !important;
+}
+
+html[data-theme-choice="dark"] .code-block-shell .plain {
+  color: #bebebe !important;
+  /* your desired color for dark mode */
+}
+
+/* In your custom CSS */
+.code-block .codeBlockTitle_OeMC {
+  position: relative;
+  padding-left: 35px;
+  font-size: medium;
+}
+
+.list-client {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.menu__list-item .menu__link {
+  font-size: 0.9rem;
+}
+
+h2,
+h1,
+h3,
+h4 {
+  margin-bottom: 5px;
+}
+
+.metrics-div li {
+  font-size: 0.9rem;
+}
+
+.metrics-div code {
+  font-weight: bold;
+  color: var(--ifm-color-primary-darkest);
+  background: none;
+}
+
+.theme-doc-sidebar-item-category-level-2 {
+  .menu__list-item {
+    margin-left: 10px;
+  }
 }
