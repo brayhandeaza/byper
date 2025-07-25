@@ -1,0 +1,30 @@
+[
+  {
+    "package_name": "deepdefend",
+    "date": {
+      "value": "2025-07-23"
+    },
+    "download_count": 4
+  },
+  {
+    "package_name": "deepdetails",
+    "date": {
+      "value": "2025-07-23"
+    },
+    "download_count": 4
+  },
+  {
+    "package_name": "tencentcloud-sdk-python",
+    "date": {
+      "value": "2025-07-23"
+    },
+    "download_count": 8161
+  },
+  {
+    "package_name": "clearml-agent",
+    "date": {
+      "value": "2025-07-23"
+    },
+    "download_count": 6761
+  }
+]

@@ -17,6 +17,6 @@
   "packageManager": "yarn@1.22.22",
   "workspaces": [
     "apps/python/*",
-    "apps/web"
+    "apps/docs/*"
   ]
 }

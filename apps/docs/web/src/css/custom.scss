@@ -1,0 +1,147 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #00578a;
+  // --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+.code-block-shell {
+  // width: 250px;
+  height: 50px;
+  color: #bebebe !important;
+  border: 0.1px solid rgba(82, 82, 82, 0.38) !important;
+}
+
+.code-block-shell .plain {
+  color: #434343 !important;
+}
+
+html[data-theme-choice="dark"] .code-block-shell .plain {
+  color: #bebebe !important;
+  /* your desired color for dark mode */
+}
+
+/* In your custom CSS */
+.code-block .codeBlockTitle_OeMC {
+  position: relative;
+  padding-left: 35px;
+  font-size: medium;
+}
+
+.list-client {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.menu__list-item .menu__link {
+  font-size: 0.9rem;
+}
+
+h2,
+h1,
+h3,
+h4 {
+  margin-bottom: 5px;
+}
+
+.metrics-div li {
+  font-size: 0.9rem;
+}
+
+.metrics-div code {
+  font-weight: bold;
+  color: var(--ifm-color-primary-darkest);
+  background: none;
+}
+
+.theme-doc-sidebar-item-category-level-2 {
+  .menu__list-item {
+    margin-left: 10px;
+  }
+}
+
+.Input {
+  width: 100%;
+  background: #f2f2f2;
+  margin-bottom: 10px;
+  border: 0.5px solid #00000016;
+  padding: 0 15px;
+  border-radius: 5px;
+  border: 0.5px solid #00000016;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    color: #9a9a9a;
+    font-size: 22px;
+  }
+
+  input {
+    width: 100%;
+    height: 55px;
+    background: transparent;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    font-weight: 500;
+    color: #5e5e5e;
+    font-size: 18px;
+    background: #f2f2f2;
+
+    &::placeholder {
+      color: #9a9a9a;
+    }
+  }
+}
+
+// .navbar {
+//   background: var(--ifm-color-primary);
+//   box-shadow: none;
+
+//   .navbar__link,
+//   .navbar__title {
+//     color: white !important;
+//   }
+// }
+
+.ant-dropdown-menu-item {
+  padding: 20px !important;
+  height: 50px !important;
+  color: var(--ifm-color-primary-darkest);
+  background: #f2f2f2 !important;
+  font-size: 18px !important;
+  margin-bottom: 2px !important;
+  border: 1px solid rgba(0, 0, 0, 0.086) !important;
+}
+
+.search-in-nav {
+  height: 50px;
+  width: 50%;
+  padding: 0;
+  margin-left: 20px;
+
+  input {
+    height: 50px;
+  }
+}
+
+.toggle_OprV {
+  background: #000;
+  display: none;
+}
