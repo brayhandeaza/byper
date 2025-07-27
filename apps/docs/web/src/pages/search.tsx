@@ -46,7 +46,7 @@ const Search: React.FC = (): ReactNode => {
 		if (!search) return;
 
 		const delay = setTimeout(async () => {
-			await axios.get(`http://localhost:3001/search?pkg=${search.toLowerCase()}`).then(({ data }) => {
+			await axios.get(`http://localhost:3001/api/project/search?pkg=${search.toLowerCase()}`).then(({ data }) => {
 				if (Array.isArray(data))
 					setResults(data?.map((item: any, key) => {
 						return {
@@ -91,14 +91,11 @@ const Search: React.FC = (): ReactNode => {
 			const data = await response.json();
 			const { name, version, provides_extra, yanked, description, license, summary, requires_python, project_urls, classifiers } = data.info
 			const { releases: releases_raw, vulnerabilities, } = data
-
-
+			console.log({ provides_extra });
+			
 			const releasesSorted = Object.entries(releases_raw).sort(([a], [b]) => {
-				function parseVersion(version: string) {
-					return version.split('.').map(num => parseInt(num, 10));
-				}
-				const [aMajor, aMinor, aPatch] = parseVersion(a);
-				const [bMajor, bMinor, bPatch] = parseVersion(b);
+				const [aMajor, aMinor, aPatch] = a.split('.').map(num => parseInt(num, 10));
+				const [bMajor, bMinor, bPatch] = b.split('.').map(num => parseInt(num, 10))
 
 				return (
 					bMajor - aMajor ||
@@ -106,12 +103,14 @@ const Search: React.FC = (): ReactNode => {
 					bPatch - aPatch
 				);
 			}).map(([key, value]) => {
-				return Object.assign(value[0], {
+				console.log({ key, value });
+				return Object.assign(value[0] || {}, {
 					version: key
 				})
 			})
-
-
+			
+			
+			console.log({ data });
 
 
 			let repository = null
@@ -161,10 +160,13 @@ const Search: React.FC = (): ReactNode => {
 					</ReactMarkdown>
 				</div>
 				<div className="info">
-					<CodeBlock >byper add {pkg?.name}</CodeBlock>
+					<CodeBlock className='byper-copy' >byper add {pkg?.name}</CodeBlock>
 
 					<b>Published: </b>
-					<span>{moment(pkg?.release?.upload_time).fromNow()}</span>
+					<span>{moment(pkg?.release?.upload_time).fromNow()}</span><br />
+					
+					<b>Version: </b>
+					<span>{pkg?.release?.version}</span>
 
 					<div className="dependencies">
 						<b>Dependencies:</b><br />
@@ -236,7 +238,7 @@ const Search: React.FC = (): ReactNode => {
 					<menu>
 						<div className='search'>
 							<Input onKeyDown={onKeyDown} items={results} placeholder='Search projects' onChange={(e) => setSearch(e.target.value.toLowerCase())} />
-							<button onClick={onSearch} is-active={String(whoIsActive === "releases")} id="releases">Releases</button>
+							<button onClick={onSearch} is-active={String(whoIsActive === "releases")} id="releases">Search</button>
 						</div>
 						<div className="tabs">
 							<button onClick={(e) => setWhoIsActive(e.currentTarget.id)} is-active={String(whoIsActive === "description")} id="description">Description</button>

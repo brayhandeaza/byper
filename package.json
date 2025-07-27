@@ -4,10 +4,14 @@
   "scripts": {
     "make": "turbo run make --filter=byper",
     "dev": "turbo run dev --filter=byper-test",
-    "start": "turbo run dev --filter=web"
+    "start": "turbo run dev"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
     "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.11",
     "turbo": "^2.5.5",
     "typescript": "5.8.3"
   },

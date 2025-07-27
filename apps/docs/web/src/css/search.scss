@@ -25,25 +25,6 @@
         display: flex;
         margin-bottom: 20px;
 
-        // input {
-        //   width: 100%;
-        //   height: 55px;
-        //   margin-bottom: 10px;
-        //   background: #f2f2f2;
-        //   border: none;
-        //   outline: none;
-        //   padding: 0 20px;
-        //   border-radius: 5px;
-        //   border: 0.5px solid #00000016;
-        //   font-weight: bold;
-        //   color: #5e5e5e;
-        //   font-size: 1rem;
-
-        //   &::placeholder {
-        //     color: #9a9a9a;
-        //   }
-        // }
-
         button {
           width: 150px;
           height: 55px;
@@ -69,7 +50,7 @@
       .tabs {
         width: 100%;
         display: flex;
-        
+
         button {
           padding: 0 20px;
           height: 50px;
@@ -125,6 +106,20 @@
         border: 0.5px solid rgba(0, 0, 0, 0.187);
         border-radius: 5px;
 
+        .codeBlockContainer_zbXh {
+          box-shadow: none !important;
+          border: none !important;
+        }
+
+        .language-text {
+          margin-bottom: 5px !important;
+          border: 0.7px solid var(--ifm-color-primary);
+
+          svg {
+            color: var(--ifm-color-primary) !important;
+          }
+        }
+
         hr {
           height: 0.5px;
           margin: 15px 0;
@@ -151,7 +146,7 @@
         }
 
         .dependencies {
-          margin-top: 10px;
+          // margin-top: 10px;
           .box {
             display: flex;
             flex-wrap: wrap;
@@ -254,105 +249,3 @@
     }
   }
 }
-// html[data-theme="dark"] {
-//   .Search {
-//     .markdown-container {
-//       width: 85%;
-//       padding: 20px;
-
-//       display: flex;
-//       align-items: center;
-//       flex-direction: column;
-
-//       .info {
-//         width: 100%;
-//         text-align: left;
-//         font-size: larger;
-
-//         background: #000;
-
-//         display: flex;
-//         flex-direction: column;
-
-//         .pkg-info {
-//           background: #000;
-//         }
-
-//         .markdown {
-//           width: 100%;
-//           max-width: 1000px;
-//           padding: 0 20px;
-
-//           //   border: 0.5px solid #7a7a7ad5;
-//         }
-//       }
-
-//       .tabs__item {
-//         height: 50px;
-//         background: #292929;
-//         border-radius: 0px;
-//         margin-right: 5px;
-//         //   byper add pandas==2.3.1
-
-//         display: flex;
-//         align-items: center;
-//         justify-content: center;
-//       }
-
-//       .tabs__item[aria-selected="true"] {
-//         background: rgb(54, 135, 91);
-//         color: #fff;
-//         //   border: 1px solid var(--ifm-color-primary);
-//       }
-
-//       .margin-top--md {
-//         margin-top: 50px;
-//       }
-//       .releases {
-//         width: 100vw;
-//         max-width: 1000px;
-//         background: #000;
-
-//         display: grid;
-//         grid-template-columns: repeat(3, 1fr); // 3 items per row
-//         gap: 12px; // space between items
-//         padding: 10px;
-
-//         .release {
-//           height: 200px;
-//           background: #292929;
-//           padding: 10px;
-//           margin: 2px;
-//           border-radius: 10px;
-//           border: 0.5px solid #0000001c;
-
-//           .language-text {
-//             background: #1e1e1e !important;
-
-//             .plain {
-//               color: #bebebe !important;
-//             }
-//           }
-
-//           p {
-//             font-size: 16px;
-//             color: #bebebe;
-//             margin: 0;
-//           }
-
-//           .code-block {
-//             margin: 0;
-//             padding: 0;
-
-//             margin-bottom: 10px;
-//           }
-
-//           .code-block,
-//           span {
-//             font-size: 16px;
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
