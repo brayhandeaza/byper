@@ -1,6 +1,6 @@
 .Home {
   height: fit-content;
-  padding-bottom: 200px;
+  // padding-bottom: 50px;
   // background: #000;
   background: linear-gradient(
     to bottom,
@@ -9,7 +9,6 @@
   );
   header {
     height: 55vh;
-    // background: white;
     .container {
       display: flex;
       align-items: center;
@@ -17,7 +16,9 @@
       justify-content: flex-start;
 
       h1 {
-        font-size: 4.5rem;
+        padding: 0 50px;
+
+        font-size: 4rem;
         line-height: 1;
         color: var(--ifm-color-primary);
       }
@@ -25,7 +26,7 @@
       p {
         margin-top: 20px;
         width: 50%;
-        // font-size: 1.5rem;
+        font-size: 1.5rem;
         line-height: 1;
         text-align: center;
         color: #71717a;
@@ -100,32 +101,31 @@
   .Features {
     margin: 50px 0;
 
-    .sub-title {
-      margin-bottom: 10px;
-      display: flex;
-      flex-direction: column;
-
-      p {
-        background: #000;
-        margin: 0;
-        padding: 0;
-      }
-    }
-    .container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(calc(100% * 0.3), 1fr));
-      gap: 20px;
-    }
-
     .feature {
-      height: fit-content;
+      height: 250px;
       background: #ffffff94;
       border-radius: 10px;
       padding: 15px;
-      margin-top: 20px;
       padding: 30px;
       border: 0.5px solid #92929277;
       text-decoration: none;
+
+      display: flex;
+      flex-direction: column;
+
+      &:hover {
+        cursor: pointer !important;
+        border: 1px solid #00578a48 !important;
+      }
+
+      .version {
+        background: #ffffff;
+        color: #1170a8 !important;
+        padding: 2px 10px;
+        border-radius: 25px;
+        border: 0.5px solid #1170a8;
+        font-weight: 600;
+      }
 
       .header {
         display: flex;
@@ -153,22 +153,15 @@
       }
 
       .dependencies {
-        .box {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          // margin-top: 5px;
-
-          span {
-            background: #f2f2f2;
-            border: 0.5px solid #9292922c;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-            line-height: 20px;
-            color: black;
-          }
+        span {
+          background: #f2f2f2;
+          border: 0.5px solid #9292922c;
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 0.85rem;
+          white-space: nowrap;
+          line-height: 20px;
+          color: black;
         }
       }
 
@@ -176,34 +169,27 @@
         display: flex;
         align-items: center;
 
-        margin-top: 10px;
+        // margin-top: 10px;
         font-size: small;
 
         .stat {
           margin-right: 20px;
           display: flex;
           align-items: center;
-          gap: 1px;
+          // gap: 1px;
+          color: var(--ifm-color-primary);
         }
-      }
-
-      display: flex;
-      flex-direction: column;
-
-      &:hover {
-        cursor: pointer;
-        border: 0.5px solid #00578a;
       }
     }
   }
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 800px) {
   .Home {
     header {
       .container {
         .title {
-          font-size: 2rem;
+          font-size: 3rem;
         }
 
         .sub-title {

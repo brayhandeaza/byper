@@ -92,7 +92,7 @@ const Search: React.FC = (): ReactNode => {
 			const { name, version, provides_extra, yanked, description, license, summary, requires_python, project_urls, classifiers } = data.info
 			const { releases: releases_raw, vulnerabilities, } = data
 			console.log({ provides_extra });
-			
+
 			const releasesSorted = Object.entries(releases_raw).sort(([a], [b]) => {
 				const [aMajor, aMinor, aPatch] = a.split('.').map(num => parseInt(num, 10));
 				const [bMajor, bMinor, bPatch] = b.split('.').map(num => parseInt(num, 10))
@@ -108,8 +108,8 @@ const Search: React.FC = (): ReactNode => {
 					version: key
 				})
 			})
-			
-			
+
+
 			console.log({ data });
 
 
@@ -153,7 +153,7 @@ const Search: React.FC = (): ReactNode => {
 
 	const MarkDown: React.FC = () => {
 		return (
-			<section className="markdown">
+			<section className="markdown ">
 				<div className="description">
 					<ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw, rehypeSanitize]}>
 						{pkg?.description}
@@ -164,7 +164,7 @@ const Search: React.FC = (): ReactNode => {
 
 					<b>Published: </b>
 					<span>{moment(pkg?.release?.upload_time).fromNow()}</span><br />
-					
+
 					<b>Version: </b>
 					<span>{pkg?.release?.version}</span>
 
@@ -194,8 +194,8 @@ const Search: React.FC = (): ReactNode => {
 			<div className='releases'>
 				{pkg?.releases?.map((release: any) => (
 					<div key={`${pkg.name}==${release?.version}`} className="release">
-						<CodeBlock className='code-block'>byper add {pkg.name}=={release?.version}</CodeBlock>
-						<p><b>Requires Python:</b> {pkg.requires_python}</p>
+						<CodeBlock  className='code-block'>byper add {pkg.name}=={release?.version}</CodeBlock>
+						<p><b>Python:</b> {pkg.requires_python}</p>
 						<p><b>Size:</b> {bytesToMB(release?.size)} mb</p>
 						<p><b>Yanked:</b> {pkg.yanked ? "Yes" : "No"}</p>
 
@@ -206,6 +206,7 @@ const Search: React.FC = (): ReactNode => {
 					</div>
 				))}
 			</div>
+		
 		);
 	}
 

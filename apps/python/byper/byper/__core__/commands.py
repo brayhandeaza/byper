@@ -130,6 +130,8 @@ class Commands:
 
         add_parser = subparsers.add_parser("add", help="Add package to dependencies")
         add_parser.add_argument("packages", nargs="+")
+        add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
+
         add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
         add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version",)
 
@@ -303,10 +305,10 @@ class Commands:
             return
 
     @staticmethod
-    def add_package(package, no_cache=False, upgrade=False):
+    def add_package(package, no_cache=False, upgrade=False, flags=None):
         try:
             Installation.reinstall_from_requirements()
-            Installation.install(package, no_cache, upgrade)
+            Installation.install(package, no_cache, upgrade, flags)
 
         except Exception as e:
             Logger.log(f"🗑️ {package} installation failed: {e}")

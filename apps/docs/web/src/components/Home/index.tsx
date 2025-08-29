@@ -2,13 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import Heading from '@theme/Heading';
 import Input from '../Inputs';
-import pandasLogo from '@site/static/img/pandas.png'
-import pyTorchLogo from '@site/static/img/pyTorch.png'
 import axios from 'axios';
 import { MenuProps } from 'antd';
-import { FaDownload } from 'react-icons/fa';
 import { MdOutlineDownload, MdOutlineDownloading, MdOutlineTimer, MdTimer } from 'react-icons/md';
 import moment from 'moment';
 import "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -16,13 +12,17 @@ import "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.mi
 type FeatureItem = {
 	title: string;
 	href: string;
+	description: string;
 	dependencies: string[];
+	version: string;
 };
 
 const features: FeatureItem[] = [
 	{
 		title: 'pandas',
 		href: '/search?pkg=pandas',
+		version: "2.3.1",
+		description: "Powerful data structures for data analysis, time series, and statistics",
 		dependencies: [
 			"test",
 			"pyarrow",
@@ -33,6 +33,8 @@ const features: FeatureItem[] = [
 	{
 		title: 'matplotlib',
 		href: '/search?pkg=matplotlib',
+		version: "3.10.3",
+		description: "A comprehensive library for creating visualizations in Python.",
 		dependencies: [
 			"dev"
 		],
@@ -40,11 +42,17 @@ const features: FeatureItem[] = [
 	{
 		title: 'numpy',
 		href: '/search?pkg=numpy',
-		dependencies: [],
+		version: "2.3.2",
+		description: "A fundamental package for scientific computing with Python.",
+		dependencies: [
+			"none"
+		],
 	},
 	{
 		title: 'torch',
 		href: '/search?pkg=torch',
+		version: "2.7.1",
+		description: "Tensors and Dynamic neural networks in Python with strong GPU acceleration.",
 		dependencies: [
 			"optree",
 			"opt-einsum"
@@ -122,47 +130,9 @@ const HomeScreen: React.FC = () => {
 					</Link>
 				</div>
 			</header>
-			{/* <section className="Features custom-grid">
-				<div className="container">
-					<div className="sub-section">
-						<h1>Popular projects</h1>
-						<span>Some of the most downloaded packages on PyPI</span>
-					</div>
-				</div>
-				<div className="container">
-					{features.map((feature, idx) => (
-						<a href={feature.href} key={idx} className="feature">
-							<div className='header'>
-								<b>{feature.title}</b>
-								<span>0.0.1</span>
-							</div>
-							<p>Fundamental package for array computing in Python</p>
-
-							<div className="dependencies">
-								<div className="box">
-									{feature?.dependencies?.map((dep: string) => (
-										<span>{dep}</span>
-									))}
-
-								</div>
-							</div>
-							<div className="stats">
-								<div className="stat">
-									<MdOutlineDownload />
-									<span>100M/Weekly</span>
-								</div>
-								<>
-									<MdOutlineTimer />
-									<span>{moment("2025-01-01").fromNow()}</span>
-								</>
-							</div>
-						</a>
-					))}
-				</div>
-			</section> */}
-			<section className="py-16 bg-white">
+			<section className="mt-30 Features">
 				<div className="container mx-auto px-4">
-					<div className="mb-12 text-center">
+					<div className="">
 						<h2 className="text-2xl md:text-3xl font-bold">Popular Projects</h2>
 						<p className="text-muted-foreground mt-2">Some of the most downloaded packages on PyPI</p>
 					</div>
@@ -172,36 +142,31 @@ const HomeScreen: React.FC = () => {
 							<a
 								href={feature.href}
 								key={idx}
-								className="border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition"
+								className="border feature border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition"
 							>
 								<div className="flex justify-between items-center mb-2">
 									<b className="text-lg font-semibold">{feature.title}</b>
-									<span className="text-sm text-gray-500">0.0.1</span>
+									<span className="text-sm version">{feature.version}</span>
 								</div>
 
-								<p className="text-sm text-gray-700 mb-4">
-									Fundamental package for array computing in Python
-								</p>
+								<p className="text-sm text-gray-700 mb-4">{feature.description}</p>
 
 								{feature.dependencies?.length > 0 && (
-									<div className="flex flex-wrap gap-2 mb-4">
+									<div className="flex dependencies flex-wrap gap-2 mb-4">
 										{feature.dependencies.map((dep: string) => (
-											<span
-												key={dep}
-												className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-700"
-											>
+											<span key={dep} className="text-xs px-2 py-1 rounded-full text-gray-700" >
 												{dep}
 											</span>
 										))}
 									</div>
 								)}
 
-								<div className="flex items-center justify-between text-sm text-gray-500 mt-auto">
-									<div className="flex items-center gap-1">
+								<div className="flex stats items-center text-sm text-gray-500 mt-auto">
+									<div className="flex stat items-center">
 										<MdOutlineDownload className="text-lg" />
 										<span>100M/Weekly</span>
 									</div>
-									<div className="flex items-center gap-1">
+									<div className="stat">
 										<MdOutlineTimer className="text-lg" />
 										<span>{moment("2025-01-01").fromNow()}</span>
 									</div>

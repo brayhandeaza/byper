@@ -12,7 +12,7 @@
     menu {
       padding: 0;
       width: 100%;
-      margin-top: 20px;
+      margin: 20px 0 10px;
       padding-bottom: 20px;
       border-bottom: 1px solid #0000001c;
 
@@ -182,15 +182,17 @@
     }
 
     .releases {
-      width: 100vw;
-      max-width: 1000px;
+      width: 100%;
 
       display: grid;
-      grid-template-columns: repeat(4, 1fr); // 3 items per row
-      gap: 12px; // space between items
+      grid-template-columns: repeat(3, 1fr); // 3 items per row
+      gap: 20px; // space between items
       padding: 10px;
 
+      // justify-content: center;
+
       .release {
+        width: auto;
         height: 200px;
         background: #f2f2f2;
         padding: 10px;
@@ -246,6 +248,37 @@
           font-size: 16px;
         }
       }
+    }
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .markdown {
+    display: flex;
+    flex-direction: column-reverse;
+    .description {
+      width: 100% !important;
+    }
+
+    .info {
+      width: 100% !important;
+      margin: 20px 0 !important;
+    }
+  }
+
+  .releases {
+    grid-template-columns: repeat(1, 1fr) !important;
+    gap: 10px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+
+    code .plain {
+      font-size: 80% !important;
+    }
+
+    b,
+    p {
+      font-size: 13px !important;
     }
   }
 }

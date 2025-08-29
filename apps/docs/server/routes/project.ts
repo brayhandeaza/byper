@@ -1,12 +1,13 @@
 import { BigQuery } from "@google-cloud/bigquery";
 import { Router, Request, Response } from "express";
-import { ProjectDownloadModel } from "../models";
+import { PackagesModel } from "../models";
 import { parser } from 'stream-json';
 import { streamArray } from 'stream-json/streamers/StreamArray';
 import path from 'path';
 import pLimit from 'p-limit';
 import fs from 'fs';
 import { formatBytes } from "../utils";
+import { log } from "console";
 
 const bigquery = new BigQuery();
 
@@ -21,7 +22,7 @@ router.get('/search', async (req: Request, res: Response) => {
             res.status(400).json({ error: 'Missing package name' });
             return
         }
-        const data = await ProjectDownloadModel.find({
+        const data = await PackagesModel.find({
             project: { $regex: `^${pkg.toString()}`, $options: 'i' }
         }).limit(10).exec();
         res.json(data);
@@ -31,9 +32,19 @@ router.get('/search', async (req: Request, res: Response) => {
     }
 });
 
+router.get('/count', async (_: Request, res: Response) => {
+    try {
+        const count = await PackagesModel.countDocuments({}).exec();
+        res.json({ count });
+
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch data' });
+    }
+});
+
 
 router.post('/', async (req: Request, res: Response) => {
-    const filePath = path.join(__dirname, 'config', 'pkg.json');
+    const filePath = path.join(__dirname, 'config', 'projects.json');
     const jsonStream = fs.createReadStream(filePath).pipe(parser()).pipe(streamArray());
 
     const limit = pLimit(10); // Max 10 concurrent DB writes
@@ -43,7 +54,7 @@ router.post('/', async (req: Request, res: Response) => {
     jsonStream.on('data', ({ value }) => {
         const task = limit(async () => {
             try {
-                await ProjectDownloadModel.findOneAndUpdate(
+                await PackagesModel.findOneAndUpdate(
                     { project: value.package_name },
                     { $inc: { count: value.download_count } },
                     { upsert: true, new: true }
@@ -74,6 +85,51 @@ router.post('/', async (req: Request, res: Response) => {
             error: '❌ Failed to stream and update JSON data'
         });
     });
+});
+
+router.post('/test', async (req: Request, res: Response) => {
+    try {
+        const filePath = path.join(__dirname, 'config', 'pkg.json');
+        const jsonStream = fs.createReadStream(filePath).pipe(parser()).pipe(streamArray());
+
+        console.log({ jsonStream });
+
+
+        // const updateTasks: any = {};
+        // let processedCount = 0;
+
+
+        // jsonStream.on('data', ({ value }) => {
+        //     console.log(value.package_name, value.download_count);
+
+        //     const lastValue = updateTasks[value.package_name];
+        //     if (lastValue) {
+        //         lastValue.count += value.download_count;
+
+        //     } else {
+        //         updateTasks[value.package_name] = { count: value.download_count };
+        //     }
+        // });
+
+        // jsonStream.on('end', async () => {
+        //     await Promise.all(updateTasks); // wait for all throttled updates to finish
+        //     res.send({
+        //         success: true,
+        //         message: `✅ Finished processing ${processedCount} packages`
+        //     });
+        // });
+
+        // jsonStream.on('error', (err) => {
+        //     console.error('Stream error:', err);
+        //     res.status(500).send({
+        //         success: false,
+        //         error: '❌ Failed to stream and update JSON data'
+        //     });
+        // });
+
+    } catch (error: any) {
+        res.status(500).json({ error: 'Failed to fetch data', err: error.message });
+    }
 });
 
 

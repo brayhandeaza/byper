@@ -1,12 +1,13 @@
 import mongoose, { Schema } from "mongoose";
 
 
-const ProjectDownloadSchema = new Schema({
+const PackagesSchema = new Schema({
     project: String,
-    count: Number
+    downloads: Number
 })
 
-const ProjectDownloadModel = mongoose.model('project_downloads', ProjectDownloadSchema);
+const PackagesModel = mongoose.model('packages', PackagesSchema);
 
 
-export default ProjectDownloadModel
+export default PackagesModel
+

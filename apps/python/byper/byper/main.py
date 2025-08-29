@@ -27,8 +27,9 @@ def cli():
         Commands.run_task(args.name)
 
     elif args.command == "add":
+        flags = " ".join(args.flags or [])
         for pkg in args.packages:
-            Commands.add_package(pkg, args.no_cache, args.upgrade)
+            Commands.add_package(pkg, args.no_cache, args.upgrade, flags)
 
     elif args.command == "tree":
         Commands.print_directory_tree()

@@ -56,8 +56,9 @@ const config: Config = {
           customCss: [
             './src/css/style.css',
             './src/css/custom.scss',
-            './src//css/home.scss',
-            './src//css/search.scss'
+            './src/css/home.scss',
+            './src/css/search.scss',
+            './src/css/responsive.scss'
           ],
         },
       } satisfies Preset.Options,
@@ -85,6 +86,7 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
+      
       title: 'Byper',
       logo: {
         alt: 'Byper Logo',
@@ -100,51 +102,6 @@ const config: Config = {
 
       ],
     },
-    // footer: {
-    //   style: 'dark',
-    //   links: [
-    //     {
-    //       title: 'Docs',
-    //       items: [
-    //         {
-    //           label: 'Tutorial',
-    //           to: '/docs/intro',
-    //         },
-    //       ],
-    //     },
-    //     {
-    //       title: 'Community',
-    //       items: [
-    //         {
-    //           label: 'Stack Overflow',
-    //           href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-    //         },
-    //         {
-    //           label: 'Discord',
-    //           href: 'https://discordapp.com/invite/docusaurus',
-    //         },
-    //         {
-    //           label: 'X',
-    //           href: 'https://x.com/docusaurus',
-    //         },
-    //       ],
-    //     },
-    //     {
-    //       title: 'More',
-    //       items: [
-    //         {
-    //           label: 'Blog',
-    //           to: '/blog',
-    //         },
-    //         {
-    //           label: 'GitHub',
-    //           href: 'https://github.com/facebook/docusaurus',
-    //         },
-    //       ],
-    //     },
-    //   ],
-    //   copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
-    // },
     prism: {
       theme: prismThemes.nightOwlLight,
       darkTheme: prismThemes.vsDark

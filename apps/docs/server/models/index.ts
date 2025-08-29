@@ -1,8 +1,8 @@
-import ProjectDownloadModel from './projects';
+import PackagesModel from './projects';
 import MainModel from './main';
 
 
 export {
-    ProjectDownloadModel,
+    PackagesModel,
     MainModel
 }

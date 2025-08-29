@@ -19,9 +19,7 @@ Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger
 
 class Installation:
     @staticmethod
-    def install(
-        package: str, no_cache: bool = False, upgrade: bool = False
-    ) -> str | None:
+    def install(package: str, no_cache: bool = False, upgrade: bool = False, flags=None ) -> str | None:
         try:
             Environment.ensure_dirs()
 
@@ -45,6 +43,7 @@ class Installation:
                         f"{name}{version_to_install}",
                         "--disable-pip-version-check",
                         "--no-cache-dir" if no_cache else None,
+                        flags if flags else None,
                     ],
                 )
             )

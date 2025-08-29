@@ -20,5 +20,5 @@ export default function NavbarItem({ type, ...props }: Props): ReactNode {
   }
 
 
-  return <CustomComponent {...(props as any)} />;
+  return <CustomComponent />;
 }
