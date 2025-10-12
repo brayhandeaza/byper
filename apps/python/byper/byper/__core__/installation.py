@@ -2,6 +2,7 @@ import importlib
 import subprocess
 from typing import TYPE_CHECKING
 import requests
+from byper.__core__.helpers import is_vcs_url
 from packaging.requirements import Requirement
 from packaging.version import Version
 from packaging.specifiers import SpecifierSet
@@ -19,18 +20,24 @@ Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger
 
 class Installation:
     @staticmethod
-    def install(package: str, no_cache: bool = False, upgrade: bool = False, flags=None ) -> str | None:
+    def install(package: str, no_cache: bool = False, upgrade: bool = False, flags=None) -> str | None:
         try:
-            Environment.ensure_dirs()
-
-            manifest: dict = Manifest.load_requirements_manifest()
-            name, version = Installation.resolve_installable_version(package)
-            is_installed = Installation.is_package_installed(name)
-
             Logger.log(f"\n📦 Installing {package}")
+            Environment.ensure_dirs()
+            name = package
+            version = ""
+
+            is_url = is_vcs_url(package)
+
+            if not is_url:
+                manifest: dict = Manifest.load_requirements_manifest()
+                name, version = Installation.resolve_installable_version(package)
+                is_installed = Installation.is_package_installed(name)
+
 
             # Install package using env Python
             version_to_install = f"=={version}" if version else ""
+
             args = list(
                 filter(
                     None,
@@ -40,7 +47,7 @@ class Installation:
                         "pip",
                         "install",
                         "--upgrade" if upgrade else None,
-                        f"{name}{version_to_install}",
+                        f"{name}{version_to_install if is_url else ''}",
                         "--disable-pip-version-check",
                         "--no-cache-dir" if no_cache else None,
                         flags if flags else None,
@@ -81,6 +88,7 @@ class Installation:
             return name, version
 
         except Exception as e:
+            print(f"❌ {e}")
             return None, None
 
     @staticmethod

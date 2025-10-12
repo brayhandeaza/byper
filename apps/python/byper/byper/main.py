@@ -10,21 +10,20 @@ Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger
 
 def cli():
     if len(sys.argv) > 1 and sys.argv[1].endswith(".py"):
-        Environment.find_nested_venv()
         Commands.run_python_file(sys.argv[1])
         return
 
     parser = Commands.register_command()
     args = parser.parse_args()
 
-    if args.command != "doctor":
-        Environment.find_nested_venv()
-
     if args.command == "init":
         Commands.init(args.name, args.y)
 
     elif args.command == "task":
         Commands.run_task(args.name)
+
+    elif args.command == "list":
+        Commands.list()
 
     elif args.command == "add":
         flags = " ".join(args.flags or [])

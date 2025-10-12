@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, Union
 import sys
 import importlib
@@ -35,6 +36,13 @@ def load_aliases():
             _aliases_cache = config.get("aliases", {})
     return _aliases_cache
 
+
+def is_vcs_url(package: str) -> bool:
+    vcs_prefixes = ("git+", "hg+", "svn+", "bzr+")
+    if package.startswith(vcs_prefixes):
+        return True
+    # also treat plain git/http URLs as VCS-like
+    return bool(re.match(r"^(?:https?|git)://", package))
 
 def generate_aliases_pyi():
     base_path = Path(os.getcwd()).resolve()

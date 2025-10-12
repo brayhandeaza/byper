@@ -113,6 +113,7 @@ class Commands:
         parser.add_argument("--u-all", "--upgrate-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
+        subparsers.add_parser("list", help="List packages")
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
@@ -188,73 +189,116 @@ class Commands:
 
     @staticmethod
     def print_help():
-        Logger.log("List of byper commands and options:", level="info")
+        Logger.log("List of Byper commands and options:", level="info")
         Logger.log("Commands:", level="info")
 
-        Logger.log(
-            "byper init                    Initialize byper project",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper add <package-name>      Add package to dependencies",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper tree                    Print directory tree",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper run <script>            Run script", indent=2, level="command"
-        )
-        Logger.log(
-            "byper remove <package-name>   Remove package from dependencies",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper install                 Install dependencies",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper                         Run byper by itself to install dependencies from Requirements",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper doctor                  Run dependencies diagnostics",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "byper login                   PyPI login", indent=2, level="command"
-        )
-        Logger.log(
-            "byper logout                  PyPI logout", indent=2, level="command"
-        )
-        Logger.log(
-            "byper publish                 Publish package to PyPI",
-            indent=2,
-            level="command",
-        )
+        Logger.log("byper init [name] [-y]             Initialize Byper project", indent=2, level="command")
+        Logger.log("byper build                        Build distribution packages", indent=2, level="command")
+        Logger.log("byper add <packages> [--no-cache]  Add package(s) to dependencies", indent=2, level="command")
+        Logger.log("byper remove <packages>            Remove package(s) from dependencies", indent=2, level="command")
+        Logger.log("byper install                      Install dependencies", indent=2, level="command")
+        Logger.log("byper run <script>                 Run script", indent=2, level="command")
+        Logger.log("byper task <name>                  Run a custom Byper task", indent=2, level="command")
+        Logger.log("byper tree                         Print directory tree", indent=2, level="command")
+        Logger.log("byper list                         List installed packages", indent=2, level="command")
+        Logger.log("byper doctor                       Run dependencies diagnostics", indent=2, level="command")
+        Logger.log("byper refresh                      Refresh environment packages", indent=2, level="command")
+        Logger.log("byper publish                      Publish package to PyPI", indent=2, level="command")
+        Logger.log("byper login                        PyPI login", indent=2, level="command")
+        Logger.log("byper logout                       PyPI logout", indent=2, level="command")
+        Logger.log("byper                              Run Byper itself to install dependencies from Requirements.yml", indent=2, level="command")
 
-        Logger.log("\n")
-        Logger.log("Options:", level="info")
-        Logger.log(
-            "-h, --help                    Print help(byper -h, byper --help)",
-            indent=2,
-            level="command",
-        )
-        Logger.log(
-            "--no-cache                    Install packages without use cached packages(byper add <package-name> --no-cache)",
-            indent=2,
-            level="command",
-        )
+        Logger.log("\nFlags:",                         level="info")
+        Logger.log("-h, --help                         Show help message", indent=2, level="command")
+        Logger.log("-v, --version                      Print Byper version", indent=2, level="command")
+        Logger.log("--no-cache                         Install packages without using cache", indent=2, level="command")
+        Logger.log("-u, --upgrade                      Upgrade specified packages to latest version", indent=2, level="command")
+        Logger.log("--u-all, --upgrade-all             Upgrade all packages to latest version", indent=2, level="command")
+        Logger.log("-y                                 Skip confirmation prompts (used with init)", indent=2, level="command")
 
         exit()
+
+    # @staticmethod
+    # def print_help():
+    #     Logger.log("List of byper commands and options:", level="info")
+    #     Logger.log("Commands:", level="info")
+
+    #     Logger.log(
+    #         "byper init                    Initialize byper project",
+    #         indent=2,
+    #         level="command",
+    #     )
+
+    #     Logger.log(
+    #         "byper build                    Build distribution packages",
+    #         indent=2,
+    #         level="command",
+    #     )
+
+    #     Logger.log(
+    #         "byper add <package-name>      Add package to dependencies",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper tree                    Print directory tree",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper run <script>            Run script", indent=2, level="command"
+    #     )
+    #     Logger.log(
+    #         "byper remove <package-name>   Remove package from dependencies",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper install                 Install dependencies",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper                         Run byper by itself to install dependencies from Requirements",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper doctor                  Run dependencies diagnostics",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper login                   PyPI login", indent=2, level="command"
+    #     )
+    #     Logger.log(
+    #         "byper logout                  PyPI logout", indent=2, level="command"
+    #     )
+    #     Logger.log(
+    #         "byper publish                 Publish package to PyPI",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "byper list                    List installed packages",
+    #         indent=2,
+    #         level="command",
+    #     )
+
+    #     Logger.log("\n")
+    #     Logger.log("Options:", level="info")
+    #     Logger.log(
+    #         "-h, --help                    Print help(byper -h, byper --help)",
+    #         indent=2,
+    #         level="command",
+    #     )
+    #     Logger.log(
+    #         "--no-cache                    Install packages without use cached packages(byper add <package-name> --no-cache)",
+    #         indent=2,
+    #         level="command",
+    #     )
+
+    #     exit()
 
     @staticmethod
     def print_directory_tree(start_path=".", prefix="", excluded_dirs={"Packages"}):
@@ -365,20 +409,28 @@ class Commands:
             with open(entry, "w") as f:
                 f.write("print('Hello, world!')")
 
-            process = subprocess.Popen(
-                ["git", "init"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
+            create_git = input("create git repository? (y/n): ").strip().lower()
 
-            process.wait()
+            while create_git not in ["y", "n"]:
+                print("Invalid input. Please enter 'y' or 'n'.")
+                create_git = input("create git repository? (y/n): ").strip().lower()
 
-            Logger.log(f"📝 Git repository:")
-            for line in process.stdout:
-                Logger.log(f"→ {line.strip()}", level="command", indent=1)
+            if create_git == "y":
+                process = subprocess.Popen(
+                    ["git", "init"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
+                )
 
-            print(f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
+                process.wait()
+
+                Logger.log(f"📝 Git repository:")
+                for line in process.stdout:
+                    Logger.log(f"→ {line.strip()}", level="command", indent=1)
+
+                print(f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
+
         else:
             Logger.log(
                 f"{REQUIREMENTS_FILE} manifest already exists in {os.getcwd()}")
@@ -399,6 +451,39 @@ class Commands:
     @staticmethod
     def run_task(name: str):
         Tasks.run_task(name)
+
+    @staticmethod
+    def list():
+        try:
+            args = list(
+                filter(None, [
+                    Environment.get_env_python(),
+                    "-m",
+                    "pip",
+                    "list"
+                ])
+            )
+
+            process = subprocess.Popen(
+                args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+            )
+
+            for index, line in enumerate(process.stdout):
+                if index == 0:
+                    Logger.log(line.strip(), level="success", indent=0)
+
+                else:
+                    Logger.log(line.strip(), level="command", indent=0)
+
+            if process.stderr:
+                for line in process.stderr:
+                    Logger.log(f"❌ {line.strip()}", level="error", indent=1)
+
+            process.wait()
+
+        except Exception as e:
+            print(f"❌ {e}")
+            return None, None
 
     @staticmethod
     def run_script(_script: str):
