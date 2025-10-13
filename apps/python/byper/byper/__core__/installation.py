@@ -20,9 +20,9 @@ Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger
 
 class Installation:
     @staticmethod
-    def install(package: str, no_cache: bool = False, upgrade: bool = False, flags=None) -> str | None:
+    def install(package: str, download: bool = False, no_cache: bool = False, upgrade: bool = False, flags=None) -> str | None:
         try:
-            Logger.log(f"\n📦 Installing {package}")
+            Logger.log(f"\n📦 {" Downloading " if download else " Installing " }{package}")
             Environment.ensure_dirs()
             name = package
             version = ""
@@ -34,9 +34,21 @@ class Installation:
                 name, version = Installation.resolve_installable_version(package)
                 is_installed = Installation.is_package_installed(name)
 
-
             # Install package using env Python
             version_to_install = f"=={version}" if version else ""
+
+            download_args = list(
+                filter(
+                    None,
+                    [
+                        Environment.get_env_python(),
+                        "-m",
+                        "pip",
+                        "download",
+                        f"{name}"                        
+                    ],
+                )
+            )
 
             args = list(
                 filter(
@@ -56,7 +68,7 @@ class Installation:
             )
 
             process = subprocess.Popen(
-                args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                download_args if download else args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
 
             last_line = ""
@@ -71,7 +83,7 @@ class Installation:
 
             if is_installed:
                 Logger.log(
-                    f"✅ {name}=={version} is already installed.",
+                    f"✅ {name}=={version} is already {"downloaded" if download else "installed"}.",
                     level="install",
                     indent=1,
                 )

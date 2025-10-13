@@ -1,5 +1,7 @@
 ---
-sidebar_position: 1
+id: index
+authors: Brayhan De Aza
+slug: /
 ---
 
 # Tutorial Intro

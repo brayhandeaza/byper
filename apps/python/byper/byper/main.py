@@ -23,12 +23,18 @@ def cli():
         Commands.run_task(args.name)
 
     elif args.command == "list":
-        Commands.list()
+        print(args)
+        flags = [
+            "--outdated" if args.outdated else ""
+            "freeze" if args.freeze else ""
+        ]
+        Commands.list(" ".join(flags or []))
 
     elif args.command == "add":
+        download = "--download" in args.flags
         flags = " ".join(args.flags or [])
         for pkg in args.packages:
-            Commands.add_package(pkg, args.no_cache, args.upgrade, flags)
+            Commands.add_package(pkg, download, args.no_cache, args.upgrade, flags)
 
     elif args.command == "tree":
         Commands.print_directory_tree()
@@ -70,8 +76,10 @@ def cli():
         Commands.build()
 
     else:
-        if len(sys.argv) > 1:
-            Commands.print_help()
+        pass
+        print(f"Unknown command: {sys.argv}", "args", args)
+        # if len(sys.argv) > 1:
+        #     Commands.print_help()
 
-        else:
-            Commands.install()
+        # else:
+        #     Commands.install()

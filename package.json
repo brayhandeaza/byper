@@ -4,7 +4,7 @@
   "scripts": {
     "make": "turbo run make --filter=byper",
     "dev": "turbo run dev --filter=byper-test",
-    "start": "turbo run dev"
+    "start": "turbo run start --filter=web"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",

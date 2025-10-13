@@ -105,15 +105,14 @@ class Commands:
 
     @staticmethod
     def register_command():
-        parser = argparse.ArgumentParser(add_help=False)
+        parser = argparse.ArgumentParser(add_help=False, prog="byper")
         subparsers = parser.add_subparsers(dest="command")
 
-        parser.error = lambda _: Commands.print_help()
+        # parser.error = lambda _: Commands.print_help()
         parser.add_argument("-h", "--help", action="store_true", help="Show help")
         parser.add_argument("--u-all", "--upgrate-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
-        subparsers.add_parser("list", help="List packages")
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
@@ -122,6 +121,10 @@ class Commands:
         subparsers.add_parser("refresh", help="Refresh environment packages")
         subparsers.add_parser("build", help="Build distribution packages")
 
+        list_parser = subparsers.add_parser("list", help="List packages")
+        for flag in ["--outdated", "--freeze"]:
+            list_parser.add_argument(flag,  action="store_true", help="Specify output format or path")
+
         tasks_parser = subparsers.add_parser("task", help="Run task ")
         tasks_parser.add_argument("name")
 
@@ -129,10 +132,10 @@ class Commands:
         init_parser.add_argument("name", nargs="?", default=None)
         init_parser.add_argument("-y", action="store_true", help="Skip confirmation prompt")
 
+     
         add_parser = subparsers.add_parser("add", help="Add package to dependencies")
         add_parser.add_argument("packages", nargs="+")
         add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
-
         add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
         add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version",)
 
@@ -190,31 +193,31 @@ class Commands:
     @staticmethod
     def print_help():
         Logger.log("List of Byper commands and options:", level="info")
-        Logger.log("Commands:", level="info")
+        Logger.log("Commands:",                           level="info")
 
-        Logger.log("byper init [name] [-y]             Initialize Byper project", indent=2, level="command")
-        Logger.log("byper build                        Build distribution packages", indent=2, level="command")
-        Logger.log("byper add <packages> [--no-cache]  Add package(s) to dependencies", indent=2, level="command")
-        Logger.log("byper remove <packages>            Remove package(s) from dependencies", indent=2, level="command")
-        Logger.log("byper install                      Install dependencies", indent=2, level="command")
-        Logger.log("byper run <script>                 Run script", indent=2, level="command")
-        Logger.log("byper task <name>                  Run a custom Byper task", indent=2, level="command")
-        Logger.log("byper tree                         Print directory tree", indent=2, level="command")
-        Logger.log("byper list                         List installed packages", indent=2, level="command")
-        Logger.log("byper doctor                       Run dependencies diagnostics", indent=2, level="command")
-        Logger.log("byper refresh                      Refresh environment packages", indent=2, level="command")
-        Logger.log("byper publish                      Publish package to PyPI", indent=2, level="command")
-        Logger.log("byper login                        PyPI login", indent=2, level="command")
-        Logger.log("byper logout                       PyPI logout", indent=2, level="command")
-        Logger.log("byper                              Run Byper itself to install dependencies from Requirements.yml", indent=2, level="command")
+        Logger.log("byper init [name] [-y]                Initialize Byper project", indent=2, level="command")
+        Logger.log("byper build                           Build distribution packages", indent=2, level="command")
+        Logger.log("byper add <packages> [--no-cache]     Add package(s) to dependencies", indent=2, level="command")
+        Logger.log("byper remove <packages>               Remove package(s) from dependencies", indent=2, level="command")
+        Logger.log("byper install                         Install dependencies", indent=2, level="command")
+        Logger.log("byper run <script>                    Run script", indent=2, level="command")
+        Logger.log("byper task <name>                     Run a custom Byper task", indent=2, level="command")
+        Logger.log("byper tree                            Print directory tree", indent=2, level="command")
+        Logger.log("byper list                            List installed packages", indent=2, level="command")
+        Logger.log("byper doctor                          Run dependencies diagnostics", indent=2, level="command")
+        Logger.log("byper refresh                         Refresh environment packages", indent=2, level="command")
+        Logger.log("byper publish                         Publish package to PyPI", indent=2, level="command")
+        Logger.log("byper login                           PyPI login", indent=2, level="command")
+        Logger.log("byper logout                          PyPI logout", indent=2, level="command")
+        Logger.log("byper                                 Run Byper itself to install dependencies from Requirements.yml", indent=2, level="command")
 
-        Logger.log("\nFlags:",                         level="info")
-        Logger.log("-h, --help                         Show help message", indent=2, level="command")
-        Logger.log("-v, --version                      Print Byper version", indent=2, level="command")
-        Logger.log("--no-cache                         Install packages without using cache", indent=2, level="command")
-        Logger.log("-u, --upgrade                      Upgrade specified packages to latest version", indent=2, level="command")
-        Logger.log("--u-all, --upgrade-all             Upgrade all packages to latest version", indent=2, level="command")
-        Logger.log("-y                                 Skip confirmation prompts (used with init)", indent=2, level="command")
+        Logger.log("\nFlags:",                            level="info")
+        Logger.log("-h, --help                            Show help message", indent=2, level="command")
+        Logger.log("-v, --version                         Print Byper version", indent=2, level="command")
+        Logger.log("--no-cache                            Install packages without using cache", indent=2, level="command")
+        Logger.log("-u, --upgrade                         Upgrade specified packages to latest version", indent=2, level="command")
+        Logger.log("--u-all, --upgrade-all                Upgrade all packages to latest version", indent=2, level="command")
+        Logger.log("-y                                    Skip confirmation prompts (used with init)", indent=2, level="command")
 
         exit()
 
@@ -349,13 +352,13 @@ class Commands:
             return
 
     @staticmethod
-    def add_package(package, no_cache=False, upgrade=False, flags=None):
+    def add_package(package, download=False, no_cache=False, upgrade=False, flags=None):
         try:
             Installation.reinstall_from_requirements()
-            Installation.install(package, no_cache, upgrade, flags)
+            Installation.install(package, download, no_cache, upgrade, flags)
 
         except Exception as e:
-            Logger.log(f"🗑️ {package} installation failed: {e}")
+            Logger.log(f"🗑️ {package} {"downloading" if download else "installation"} failed: {e}")
 
     @staticmethod
     def install():
@@ -453,14 +456,15 @@ class Commands:
         Tasks.run_task(name)
 
     @staticmethod
-    def list():
+    def list(flags=None):
         try:
             args = list(
                 filter(None, [
                     Environment.get_env_python(),
                     "-m",
                     "pip",
-                    "list"
+                    "list",
+                    flags or ""
                 ])
             )
 

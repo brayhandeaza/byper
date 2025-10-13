@@ -10,7 +10,8 @@ const HomeScreen: React.FC = () => {
 	return (
 		<Layout title={`Hello from ${siteConfig.title}`} >
 			<main>
-				<HomePage />
+				{/* <HomePage /> */}
+				
 			</main>
 		</Layout>
 	);
