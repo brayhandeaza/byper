@@ -22,13 +22,20 @@ def cli():
     elif args.command == "task":
         Commands.run_task(args.name)
 
+    elif args.command == "cache":
+        Commands.run_task(args.name)
+
+    elif args.command == "wheel":
+        for pkg in args.packages:
+            Commands.wheel(pkg)
+
     elif args.command == "list":
-        print(args)
         flags = [
-            "--outdated" if args.outdated else ""
-            "freeze" if args.freeze else ""
+            "--outdated" if args.outdated else "",
+            "freeze" if args.freeze else "",
+            "cache" if args.cache else ""
         ]
-        Commands.list(" ".join(flags or []))
+        Commands.list(flags)
 
     elif args.command == "add":
         download = "--download" in args.flags
@@ -52,8 +59,9 @@ def cli():
         Commands.upgrade_all()
 
     elif args.command == "remove":
+        flags = " ".join(args.flags or [])
         for pkg in args.packages:
-            Commands.remove_package(pkg)
+            Commands.remove_package(pkg, flags)
 
     elif args.command == "login":
         Commands.login()
@@ -76,10 +84,8 @@ def cli():
         Commands.build()
 
     else:
-        pass
-        print(f"Unknown command: {sys.argv}", "args", args)
-        # if len(sys.argv) > 1:
-        #     Commands.print_help()
+        if len(sys.argv) > 1:
+            Commands.print_help()
 
-        # else:
-        #     Commands.install()
+        else:
+            Commands.install()

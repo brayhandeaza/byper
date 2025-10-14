@@ -22,7 +22,7 @@ class Installation:
     @staticmethod
     def install(package: str, download: bool = False, no_cache: bool = False, upgrade: bool = False, flags=None) -> str | None:
         try:
-            Logger.log(f"\n📦 {" Downloading " if download else " Installing " }{package}")
+            Logger.log(f"\n📦 {" Downloading " if download else " Installing "}{package}")
             Environment.ensure_dirs()
             name = package
             version = ""
@@ -45,7 +45,7 @@ class Installation:
                         "-m",
                         "pip",
                         "download",
-                        f"{name}"                        
+                        f"{name}"
                     ],
                 )
             )
@@ -136,13 +136,14 @@ class Installation:
             raise Exception
 
     @staticmethod
-    def uninstall(package: str) -> str | None:
+    def uninstall(package: str, flags: str = None) -> str | None:
         try:
             Environment.ensure_dirs()
             name, _ = Installation.resolve_installable_version(package)
 
             Logger.log(f"\n📦 Uninstalling {package}", level="install")
 
+            remove_cache = "--rm-cache" in flags
             process = subprocess.Popen(
                 [
                     Environment.get_env_python(),
@@ -158,6 +159,8 @@ class Installation:
                 text=True,
             )
 
+            process.wait()
+
             last_line = ""
             for line in process.stdout:
                 last_line = line.strip()
@@ -172,7 +175,29 @@ class Installation:
                 for line in process.stderr:
                     Logger.log(f"❌ {line.strip()}", level="error", indent=1)
 
-            process.wait()
+            if remove_cache:
+                # pip cache remove pandas
+
+                cache = subprocess.run(
+                    [
+                        Environment.get_env_python(),
+                        "-m",
+                        f"pip",
+                        f"cache",
+                        f"remove",
+                        f"{name}"
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+
+                Logger.log(f"\n📦 Removing {name} from cache", level="success")
+                Logger.log(cache.stdout.strip(), level="command", indent=1)
+
+                if cache.stderr:
+                    for line in cache.stderr:
+                        Logger.log(f"❌ {line.strip()}", level="error", indent=1)
 
             manifest = Manifest.load_requirements_manifest()
             dependencies: dict = dict(manifest.get("dependencies", {}))

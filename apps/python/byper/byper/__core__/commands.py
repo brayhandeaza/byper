@@ -108,7 +108,7 @@ class Commands:
         parser = argparse.ArgumentParser(add_help=False, prog="byper")
         subparsers = parser.add_subparsers(dest="command")
 
-        # parser.error = lambda _: Commands.print_help()
+        parser.error = lambda _: Commands.print_help()
         parser.add_argument("-h", "--help", action="store_true", help="Show help")
         parser.add_argument("--u-all", "--upgrate-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
@@ -122,7 +122,7 @@ class Commands:
         subparsers.add_parser("build", help="Build distribution packages")
 
         list_parser = subparsers.add_parser("list", help="List packages")
-        for flag in ["--outdated", "--freeze"]:
+        for flag in ["--outdated", "--freeze", "--cache", "-c"]:
             list_parser.add_argument(flag,  action="store_true", help="Specify output format or path")
 
         tasks_parser = subparsers.add_parser("task", help="Run task ")
@@ -132,18 +132,21 @@ class Commands:
         init_parser.add_argument("name", nargs="?", default=None)
         init_parser.add_argument("-y", action="store_true", help="Skip confirmation prompt")
 
-     
         add_parser = subparsers.add_parser("add", help="Add package to dependencies")
         add_parser.add_argument("packages", nargs="+")
         add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
         add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
         add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version",)
 
+        wheel_parser = subparsers.add_parser("wheel", help="Build whee file for packages")
+        wheel_parser.add_argument("packages", nargs="+")
+
         run_parser = subparsers.add_parser("run", help="Run script")
         run_parser.add_argument("script")
 
         remove_parser = subparsers.add_parser("remove", help="Remove package from dependencies")
         remove_parser.add_argument("packages", nargs="+")
+        remove_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
 
         return parser
 
@@ -343,9 +346,9 @@ class Commands:
             print(f"{prefix}{connector}{Fore.GREEN}{file}{Style.RESET_ALL}")
 
     @staticmethod
-    def remove_package(package: str):
+    def remove_package(package: str, flags: str):
         try:
-            Installation.uninstall(package)
+            Installation.uninstall(package, flags)
 
         except ValueError as e:
             print(f"❌ {package} failed to remove: {e}")
@@ -452,24 +455,62 @@ class Commands:
                 Environment.ensure_dirs()
 
     @staticmethod
-    def run_task(name: str):
-        Tasks.run_task(name)
+    def wheel(name: str):
+        args = list(
+            filter(None, [
+                Environment.get_env_python(),
+                "-m",
+                "pip",
+                "wheel",
+                {"name": name}
+            ])
+        )
+        
+        process = subprocess.Popen(
+            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        )
+
+        for index, line in enumerate(process.stdout):
+            if index == 0:
+                Logger.log(line.strip(), level="success", indent=0)
+
+            else:
+                Logger.log(line.strip(), level="command", indent=0)
+
+        if process.stderr:
+            for line in process.stderr:
+                Logger.log(f"❌ {line.strip()}", level="error", indent=1)
+
+        process.wait()
 
     @staticmethod
-    def list(flags=None):
+    def list(flags=[]):
         try:
+            args_list = [f"--{arg}" if arg == "outdated" else arg for arg in flags]
+            show_cache = "cache" in args_list
+            args_str = " ".join(flags or [])
+
+            cache_args = list(
+                filter(None, [
+                    Environment.get_env_python(),
+                    "-m",
+                    "pip",
+                    "cache",
+                    "list"
+                ])
+            )
             args = list(
                 filter(None, [
                     Environment.get_env_python(),
                     "-m",
                     "pip",
                     "list",
-                    flags or ""
+                    args_str or ""
                 ])
             )
 
             process = subprocess.Popen(
-                args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                cache_args if show_cache else args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
             )
 
             for index, line in enumerate(process.stdout):
