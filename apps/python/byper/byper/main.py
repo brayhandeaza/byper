@@ -40,10 +40,10 @@ def cli():
         download = "--download" in args.flags
         flags = " ".join(args.flags or [])
         for pkg in args.packages:
-            Commands.add_package(pkg, download, args.no_cache, args.upgrade, flags)
+            Commands.add_package(pkg, download, args.no_cache, args.offline, args.upgrade, flags)
 
     elif args.command == "install":
-        Commands.install()
+        Commands.install(args.offline)
 
     elif args.command == "tree":
         Commands.print_directory_tree()
@@ -100,4 +100,4 @@ def cli():
         if len(sys.argv) > 1:
             Commands.print_help(exit_code=1)
         else:
-            Commands.install()
+            Commands.install(args.offline)

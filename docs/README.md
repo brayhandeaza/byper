@@ -10,3 +10,4 @@ Byper es un gestor de dependencias y runner de tareas para proyectos Python. Usa
 - [Tareas y variables de entorno](aliases-and-tasks.md)
 - [Compilar y publicar](publishing.md)
 - [Desarrollo de Byper](development.md)
+- [Estado actual (checklist)](ESTADO.md)

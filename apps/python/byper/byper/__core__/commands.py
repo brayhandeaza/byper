@@ -188,7 +188,8 @@ class Commands:
         parser.add_argument("--u-all", "--upgrade-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
-        subparsers.add_parser("install", help="Install dependencies")
+        install_parser = subparsers.add_parser("install", help="Install dependencies")
+        install_parser.add_argument("--offline", action="store_true", help="Install from cache only, no network")
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
@@ -208,10 +209,11 @@ class Commands:
         init_parser.add_argument("-y", action="store_true", help="Skip confirmation prompt")
 
         add_parser = subparsers.add_parser("add", help="Add package to dependencies")
+        add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
+        add_parser.add_argument("--offline", action="store_true", help="Install from cache only, no network")
+        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version")
         add_parser.add_argument("packages", nargs="+")
         add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
-        add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
-        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version")
 
         cache_parser = subparsers.add_parser("cache", help="Manage pip cache")
         cache_parser.add_argument("action", choices=["list", "clear", "dir"], help="Cache action")
@@ -346,11 +348,11 @@ class Commands:
             Logger.log(f"❌ {package} failed to remove: {e}", level="error")
 
     @staticmethod
-    def add_package(package: str, download: bool = False, no_cache: bool = False, upgrade: bool = False, flags: str | None = None):
-        Installation.install(package, download, no_cache, upgrade, flags)
+    def add_package(package: str, download: bool = False, no_cache: bool = False, offline: bool = False, upgrade: bool = False, flags: str | None = None):
+        Installation.install(package, download, no_cache, offline, upgrade, flags)
 
     @staticmethod
-    def install():
+    def install(offline: bool = False):
         if not os.path.exists(REQUIREMENTS_FILE):
             Logger.log(f"❌ {REQUIREMENTS_FILE} not found in {os.getcwd()}", level="error")
             return
@@ -359,7 +361,7 @@ class Commands:
 
         # Decide whether to install from lockfile
         lockfile_path = get_lockfile_path(find_project_root())
-        if lockfile_path.exists():
+        if lockfile_path.exists() and not offline:
             try:
                 locked = LockfileManager.load_lockfile_manifest()
                 manifest = Manifest.load_requirements_manifest()
@@ -393,7 +395,7 @@ class Commands:
                 Logger.log(f"❌ {e}", level="error")
                 return
 
-        Installation.install_from_requirements(show_log=True)
+        Installation.install_from_requirements(show_log=True, offline=offline)
 
     @staticmethod
     def reinstall():

@@ -369,3 +369,21 @@ class TestErrorMessage:
         combined = result.stdout + result.stderr
         assert "byper reset" in combined
 
+
+# ---------------------------------------------------------------------------
+# Offline mode & network error handling
+# ---------------------------------------------------------------------------
+
+def test_install_offline_flag_accepted(initialized_project: Path):
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n"
+    )
+    result = run_byper("install", "--offline", cwd=initialized_project, check=False)
+    assert result.returncode == 0
+
+
+def test_add_offline_flag_accepted(initialized_project: Path):
+    result = run_byper("add", "--offline", "some-package-xyz", cwd=initialized_project, check=False)
+    combined = result.stdout + result.stderr
+    assert "Offline" in combined
+

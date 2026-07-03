@@ -11,6 +11,7 @@ def run_byper(
     cwd: Path,
     env: dict | None = None,
     check: bool = True,
+    input: str | None = None,
 ) -> subprocess.CompletedProcess:
     """Run the byper CLI from source using the current Python interpreter."""
     full_env = (env or os.environ).copy()
@@ -23,5 +24,6 @@ def run_byper(
         env=full_env,
         text=True,
         capture_output=True,
+        input=input,
         check=check,
     )

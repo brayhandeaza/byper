@@ -3,9 +3,9 @@
 | Comando | Descripción |
 |---|---|
 | `byper` | Instala las dependencias del `requirements.yaml` actual |
-| `byper install` | Igual que arriba; usa `Lockfile` si está sincronizado |
+| `byper install [--offline]` | Igual que arriba; usa `Lockfile` si está sincronizado. `--offline` instala solo del caché local |
 | `byper init [nombre] [-y]` | Crea un proyecto nuevo |
-| `byper add <pkg> [--upgrade] [--no-cache]` | Añade/instala un paquete |
+| `byper add [--offline] [--upgrade] [--no-cache] <pkg>` | Añade/instala un paquete. `--offline` usa solo caché local |
 | `byper remove <pkg>` | Elimina un paquete |
 | `byper run <script>` | Ejecuta un script del manifesto |
 | `byper task <nombre>` | Ejecuta una tarea del manifesto |
