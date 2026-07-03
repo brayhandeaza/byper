@@ -1,5 +1,7 @@
+import importlib.util
 import os
 import platform
+import shutil
 import subprocess
 import sys
 from functools import lru_cache
@@ -117,8 +119,17 @@ def validate_project_environment(project_root: Optional[Path | str] = None) -> N
     Logger.log(f"❌ {message}", level="error")
     sys.exit(1)
 
+def _get_byper_package_path() -> Path:
+    """Get the filesystem path to the ``byper`` package directory."""
+    spec = importlib.util.find_spec("byper")
+    if spec is not None and spec.origin is not None:
+        return Path(spec.origin).resolve().parent
+    # Fallback: walk up from this file's location.
+    return Path(__file__).resolve().parent.parent
+
+
 # Directory that must be on PYTHONPATH so project subprocesses can import byper.
-BYPER_PACKAGE_ROOT = Path(__file__).resolve().parent.parent.parent
+BYPER_PACKAGE_ROOT = _get_byper_package_path().parent
 
 
 def find_project_root(start_path: Optional[Path | str] = None) -> Path:
@@ -245,12 +256,72 @@ def ensure_project_environment(project_root: Optional[Path | str] = None) -> Pat
 
     # Install byper into the project environment so aliases/env work in project subprocesses.
     Logger.log("📦 Instalando byper en el environment local", level="install")
-    subprocess.check_call(
-        [str(get_project_python(packages.parent)), "-m", "pip", "install", "--quiet", "-e", str(BYPER_PACKAGE_ROOT)]
-    )
+    _install_byper_into_project(packages.parent)
     Logger.log("✅ byper instalado en el environment local", level="success")
 
     return packages
+
+
+def _install_byper_into_project(project_root: Path) -> None:
+    """Make the ``byper`` package importable inside the project's venv."""
+    source_root = _find_byper_project_root()
+    project_pip = [str(get_project_python(project_root)), "-m", "pip", "install", "--quiet"]
+
+    if source_root is not None:
+        subprocess.check_call(project_pip + ["-e", str(source_root)])
+        return
+
+    # Installed globally — copy the package and install its dependencies.
+    byper_pkg = _get_byper_package_path()
+
+    result = subprocess.run(
+        [str(get_project_python(project_root)), "-c", "import site; print(site.getsitepackages()[0])"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        Logger.log("⚠️ Could not determine project site-packages", level="warn")
+        return
+
+    target = Path(result.stdout.strip()) / "byper"
+    if target.exists():
+        if target.is_symlink():
+            target.unlink()
+        else:
+            shutil.rmtree(target)
+    shutil.copytree(str(byper_pkg), str(target))
+
+    # Install byper's dependencies into the project venv.
+    try:
+        from importlib.metadata import distribution
+    except ImportError:
+        from importlib_metadata import distribution
+
+    try:
+        dist = distribution("byper")
+        requires = getattr(dist, "requires", None)
+        if requires:
+            dep_names = []
+            for req in requires:
+                dep_names.append(str(req))
+            if dep_names:
+                subprocess.check_call(project_pip + dep_names)
+    except Exception:
+        Logger.log("⚠️ Could not install byper dependencies into project environment", level="warn")
+
+
+def _find_byper_project_root() -> Path | None:
+    """Find the byper source root (containing pyproject.toml or setup.py)."""
+    current = Path(__file__).resolve().parent  # __core__/
+    for _ in range(10):
+        if (current / "pyproject.toml").exists() or (current / "setup.py").exists():
+            return current
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    return None
 
 
 def run_project_python(
