@@ -1,34 +1,55 @@
 import argparse
+import json
 import os
-import importlib
-from pathlib import Path
 import shutil
 import socket
 import subprocess
 import sys
-from typing import TYPE_CHECKING
 import webbrowser
-from colorama import Fore, Style
-from importlib.metadata import distributions, distribution, PackageNotFoundError
 from configparser import ConfigParser
-from byper.__core__.constants import ENVIRONMENT_DIRECTORY, REQUIREMENTS_FILE
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from colorama import Fore, Style
+
+from byper.__core__.constants import ENVIRONMENT_DIRECTORY, LOCKFILE_NAME, REQUIREMENTS_FILE, VERSION
+from byper.__core__.constants import get_lockfile_path
+from byper.__core__.lockfile import LockfileManager
+from byper.__core__.project_env import (
+    ensure_project_environment,
+    find_project_root,
+    get_project_python,
+    get_project_python_version_info,
+    get_required_python,
+    run_in_project,
+    run_project_pip,
+    run_project_python,
+    validate_project_environment,
+)
+from byper.__core__.python_version import describe_requirement, format_version, is_compatible
 
 if TYPE_CHECKING:
-    from byper.__core__.manifest import Manifest
     from byper.__core__.environment import Environment
     from byper.__core__.installation import Installation
-    from byper.__core__.utils.logger import Logger
+    from byper.__core__.manifest import Manifest
     from byper.__core__.tasks import Tasks
+    from byper.__core__.utils.logger import Logger
 
-Environment = getattr(importlib.import_module(
-    "byper.__core__.environment"), "Environment")
-Manifest = getattr(importlib.import_module(
-    "byper.__core__.manifest"), "Manifest")
-Logger = getattr(importlib.import_module(
-    "byper.__core__.utils.logger"), "Logger")
-Installation = getattr(importlib.import_module(
-    "byper.__core__.installation"), "Installation")
-Tasks = getattr(importlib.import_module("byper.__core__.tasks"), "Tasks")
+Environment = getattr(__import__("byper.__core__.environment", fromlist=["Environment"]), "Environment")
+Installation = getattr(__import__("byper.__core__.installation", fromlist=["Installation"]), "Installation")
+Manifest = getattr(__import__("byper.__core__.manifest", fromlist=["Manifest"]), "Manifest")
+Tasks = getattr(__import__("byper.__core__.tasks", fromlist=["Tasks"]), "Tasks")
+Logger = getattr(__import__("byper.__core__.utils.logger", fromlist=["Logger"]), "Logger")
+
+
+def _has_module(module: str) -> bool:
+    result = run_project_pip(
+        ["show", module],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return result.returncode == 0
 
 
 class Commands:
@@ -36,83 +57,120 @@ class Commands:
     def doctor():
         Logger.log("🧠 Running environment diagnostics...")
 
-        # Python version
+        project_root = find_project_root()
+
         py_version = sys.version.split()[0]
-        Logger.log(f"↪ Python version: {py_version}", indent=1)
+        Logger.log(f"↪ Python version (CLI): {py_version}", indent=1)
 
-        # Check for main 'Packages/' env
-        packages_exists = os.path.isdir("Packages")
-        if packages_exists:
-            Logger.log(
-                f"↪ Python environment found at: {os.getcwd()}", indent=1)
+        Logger.log(f"↪ Project root: {project_root}", indent=1)
+
+        manifest = Manifest.load_requirements_manifest()
+        raw_python = manifest.get("python")
+        required = get_required_python()
+        if raw_python is None:
+            Logger.log("Python requirement: not set", indent=1)
         else:
-            Logger.log(
-                "↪ Packages/ environment folder does not exist", indent=1, level="warn"
-            )
+            Logger.log(f"Python requirement: {raw_python}", indent=1)
 
-        # Internet access
+        packages_exists = (project_root / ENVIRONMENT_DIRECTORY).is_dir()
+        if packages_exists:
+            Logger.log(f"↪ Local environment found at: {project_root / ENVIRONMENT_DIRECTORY}", indent=1)
+        else:
+            Logger.log("↪ packages/ environment folder does not exist", indent=1, level="warn")
+
+        project_python = get_project_python(project_root)
+        project_info = get_project_python_version_info(project_root)
+        if project_info is None:
+            Logger.log("Project Python: not found", indent=1)
+            Logger.log(f"Python path: {project_python}", indent=1)
+        else:
+            installed_version, impl = project_info
+            Logger.log(f"Project Python: {format_version(installed_version)}", indent=1)
+            Logger.log(f"Implementation: {impl}", indent=1)
+            Logger.log(f"Python path: {project_python}", indent=1)
+
+            if required is None or is_compatible(installed_version, required):
+                Logger.log("Status: OK", indent=1, level="success")
+            else:
+                Logger.log("Status: ERROR", indent=1, level="error")
+                Logger.log(
+                    f"The local environment was created with Python {format_version(installed_version)},\n"
+                    f"but this project requires Python {describe_requirement(required)}.\n\n"
+                    "Delete packages/ and run:\n"
+                    "  byper install",
+                    indent=1,
+                    level="error",
+                )
+                sys.exit(1)
+
         try:
             socket.create_connection(("pypi.org", 443), timeout=3)
-            Logger.log("↪ Internet connectivity, successfully", indent=1)
+            Logger.log("↪ Internet connectivity: OK", indent=1)
         except Exception:
-            Logger.log("↪ Internet connectivity, failed",
-                       indent=1, level="warn")
+            Logger.log("↪ Internet connectivity: failed", indent=1, level="warn")
 
-        # Git repository
-        is_git = os.path.isdir(".git")
-        if is_git:
-            Logger.log("↪ Git repository found", indent=1)
-        else:
-            Logger.log("↪ Not git repository found", indent=1, level="warn")
+        is_git = (project_root / ".git").is_dir()
+        Logger.log(f"↪ Git repository: {'found' if is_git else 'not found'}", indent=1)
 
-        # Warn about nested virtual environments (outside of Packages/)
         Environment.find_nested_venv()
-        Environment.outdated_packages()
-        Manifest.load_installed_manifest()
 
-        # Check for mismatched or broken packages
-        broken_packages = []
+        if packages_exists:
+            Environment.outdated_packages()
+            Manifest.load_installed_manifest()
+            Commands._check_requirements_consistency(project_root)
 
-        installed_packages = {
-            dist.metadata["Name"]: dist.version for dist in distributions()
+        Logger.log(f"↪ Project Python executable: {project_python}", indent=1)
+
+    @staticmethod
+    def _check_requirements_consistency(project_root: Path):
+        manifest = Manifest.load_requirements_manifest()
+        expected = manifest.get("dependencies", {})
+        if not expected:
+            return
+
+        result = run_project_pip(
+            ["list", "--format=json"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        if result.returncode != 0:
+            return
+
+        installed = {
+            pkg["name"].lower().replace("-", "_"): pkg["version"]
+            for pkg in json.loads(result.stdout)
         }
 
-        for name, expected_version in installed_packages.items():
-            try:
-                dist = distribution(name)
-                actual_version = dist.version
-                if expected_version != actual_version:
-                    broken_packages.append(
-                        (name, expected_version, actual_version))
-            except PackageNotFoundError:
-                broken_packages.append(
-                    (name, expected_version, "not installed"))
+        broken = []
+        for name, version in expected.items():
+            normalized = name.lower().replace("-", "_")
+            actual = installed.get(normalized)
+            if actual is None:
+                broken.append((name, version, "not installed"))
+            elif version and actual != version:
+                broken.append((name, version, actual))
 
-        if broken_packages:
-            Logger.log(
-                "↪ Issues detected with installed packages:", indent=2, level="warn"
-            )
-            for name, expected, actual in broken_packages:
-                Logger.log(
-                    f"- {name}: expected {expected}, got {actual}",
-                    indent=3,
-                    level="warn",
-                )
-
-        # Optional: print Python executable path
-        Logger.log(
-            f"↪ Python executable: {Environment.get_env_python()}", indent=1)
+        if broken:
+            Logger.log("↪ Mismatched packages:", indent=2, level="warn")
+            for name, expected_version, actual in broken:
+                Logger.log(f"- {name}: expected {expected_version}, got {actual}", indent=3, level="warn")
 
     @staticmethod
     def register_command():
         parser = argparse.ArgumentParser(add_help=False, prog="byper")
         subparsers = parser.add_subparsers(dest="command")
 
-        parser.error = lambda _: Commands.print_help()
+        def _parser_error(message):
+            Logger.log(f"❌ {message}", level="error")
+            Commands.print_help(exit_code=1)
+
+        parser.error = _parser_error
         parser.add_argument("-h", "--help", action="store_true", help="Show help")
-        parser.add_argument("--u-all", "--upgrate-all", action="store_true", help="Upgrade all packages to latest version")
+        parser.add_argument("--u-all", "--upgrade-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
+        subparsers.add_parser("install", help="Install dependencies")
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
@@ -123,9 +181,9 @@ class Commands:
 
         list_parser = subparsers.add_parser("list", help="List packages")
         for flag in ["--outdated", "--freeze", "--cache", "-c"]:
-            list_parser.add_argument(flag,  action="store_true", help="Specify output format or path")
+            list_parser.add_argument(flag, action="store_true", help="Specify output format or path")
 
-        tasks_parser = subparsers.add_parser("task", help="Run task ")
+        tasks_parser = subparsers.add_parser("task", help="Run task")
         tasks_parser.add_argument("name")
 
         init_parser = subparsers.add_parser("init", help="Initialize byper project")
@@ -136,9 +194,12 @@ class Commands:
         add_parser.add_argument("packages", nargs="+")
         add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
         add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
-        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version",)
+        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version")
 
-        wheel_parser = subparsers.add_parser("wheel", help="Build whee file for packages")
+        cache_parser = subparsers.add_parser("cache", help="Manage pip cache")
+        cache_parser.add_argument("action", choices=["list", "clear", "dir"], help="Cache action")
+
+        wheel_parser = subparsers.add_parser("wheel", help="Build wheel file for packages")
         wheel_parser.add_argument("packages", nargs="+")
 
         run_parser = subparsers.add_parser("run", help="Run script")
@@ -155,46 +216,29 @@ class Commands:
         packages = Environment.outdated_packages(False)
 
         if not packages:
-            Logger.log("✅ All packages are up to date.",
-                       level="success", indent=1)
+            Logger.log("✅ All packages are up to date.", level="success", indent=1)
             return
 
-        Logger.log(
-            f"↪ Upgrading {len(packages)} outdated package(s)", indent=1)
+        Logger.log(f"↪ Upgrading {len(packages)} outdated package(s)", indent=1)
 
         for package in packages:
-            args = [
-                Environment.get_env_python(),
-                "-m",
-                "pip",
-                "install",
-                "--upgrade",
-                package,
-                "--disable-pip-version-check",
-            ]
-
             Logger.log(f"\n🔄 Upgrading: {package}", indent=2)
-            try:
-                process = subprocess.Popen(
-                    args,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
+            result = run_project_pip(
+                ["install", "--upgrade", package],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            for line in result.stdout.splitlines():
+                Logger.log(line.strip(), level="command", indent=3)
 
-                for line in process.stdout:
-                    Logger.log(line.strip(), level="command", indent=3)
-
-                process.wait()
-            except Exception as e:
-                Logger.log(
-                    f"❌ Failed to upgrade {package}: {e}", level="error", indent=3
-                )
+            if result.returncode != 0:
+                Logger.log(f"❌ Failed to upgrade {package}", level="error", indent=3)
 
         Logger.log("✅ Finished upgrading packages", level="success", indent=1)
 
     @staticmethod
-    def print_help():
+    def print_help(exit_code: int = 0):
         Logger.log("List of Byper commands and options:", level="info")
         Logger.log("Commands:",                           level="info")
 
@@ -207,12 +251,13 @@ class Commands:
         Logger.log("byper task <name>                     Run a custom Byper task", indent=2, level="command")
         Logger.log("byper tree                            Print directory tree", indent=2, level="command")
         Logger.log("byper list                            List installed packages", indent=2, level="command")
+        Logger.log("byper cache <list|clear|dir>          Manage pip cache", indent=2, level="command")
         Logger.log("byper doctor                          Run dependencies diagnostics", indent=2, level="command")
         Logger.log("byper refresh                         Refresh environment packages", indent=2, level="command")
         Logger.log("byper publish                         Publish package to PyPI", indent=2, level="command")
         Logger.log("byper login                           PyPI login", indent=2, level="command")
         Logger.log("byper logout                          PyPI logout", indent=2, level="command")
-        Logger.log("byper                                 Run Byper itself to install dependencies from Requirements.yml", indent=2, level="command")
+        Logger.log("byper                                 Run Byper itself to install dependencies from requirements.yaml", indent=2, level="command")
 
         Logger.log("\nFlags:",                            level="info")
         Logger.log("-h, --help                            Show help message", indent=2, level="command")
@@ -222,96 +267,17 @@ class Commands:
         Logger.log("--u-all, --upgrade-all                Upgrade all packages to latest version", indent=2, level="command")
         Logger.log("-y                                    Skip confirmation prompts (used with init)", indent=2, level="command")
 
-        exit()
-
-    # @staticmethod
-    # def print_help():
-    #     Logger.log("List of byper commands and options:", level="info")
-    #     Logger.log("Commands:", level="info")
-
-    #     Logger.log(
-    #         "byper init                    Initialize byper project",
-    #         indent=2,
-    #         level="command",
-    #     )
-
-    #     Logger.log(
-    #         "byper build                    Build distribution packages",
-    #         indent=2,
-    #         level="command",
-    #     )
-
-    #     Logger.log(
-    #         "byper add <package-name>      Add package to dependencies",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper tree                    Print directory tree",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper run <script>            Run script", indent=2, level="command"
-    #     )
-    #     Logger.log(
-    #         "byper remove <package-name>   Remove package from dependencies",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper install                 Install dependencies",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper                         Run byper by itself to install dependencies from Requirements",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper doctor                  Run dependencies diagnostics",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper login                   PyPI login", indent=2, level="command"
-    #     )
-    #     Logger.log(
-    #         "byper logout                  PyPI logout", indent=2, level="command"
-    #     )
-    #     Logger.log(
-    #         "byper publish                 Publish package to PyPI",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "byper list                    List installed packages",
-    #         indent=2,
-    #         level="command",
-    #     )
-
-    #     Logger.log("\n")
-    #     Logger.log("Options:", level="info")
-    #     Logger.log(
-    #         "-h, --help                    Print help(byper -h, byper --help)",
-    #         indent=2,
-    #         level="command",
-    #     )
-    #     Logger.log(
-    #         "--no-cache                    Install packages without use cached packages(byper add <package-name> --no-cache)",
-    #         indent=2,
-    #         level="command",
-    #     )
-
-    #     exit()
+        exit(exit_code)
 
     @staticmethod
-    def print_directory_tree(start_path=".", prefix="", excluded_dirs={"Packages"}):
+    def print_directory_tree(start_path=".", prefix="", excluded_dirs=None):
+        if excluded_dirs is None:
+            excluded_dirs = {ENVIRONMENT_DIRECTORY}
+
         try:
             entries = sorted(os.listdir(start_path))
         except OSError as e:
-            print(f"{Fore.RED}Error accessing {start_path}: {e}")
+            print(f"{Fore.RED}Error accessing {start_path}: {e}{Style.RESET_ALL}")
             return
 
         files = []
@@ -329,15 +295,12 @@ class Commands:
             connector = "└── " if is_last else "├── "
 
             if directory in excluded_dirs:
-                print(
-                    f"{prefix}{connector}{Fore.LIGHTBLACK_EX}{directory}/*{Style.RESET_ALL}"
-                )
+                print(f"{prefix}{connector}{Fore.LIGHTBLACK_EX}{directory}/*{Style.RESET_ALL}")
             else:
                 print(f"{prefix}{connector}{Fore.CYAN}{directory}/{Style.RESET_ALL}")
                 new_prefix = f"{prefix}    " if is_last else f"{prefix}│   "
                 Commands.print_directory_tree(
-                    os.path.join(
-                        start_path, directory), new_prefix, excluded_dirs
+                    os.path.join(start_path, directory), new_prefix, excluded_dirs
                 )
 
         for index, file in enumerate(files):
@@ -346,37 +309,68 @@ class Commands:
             print(f"{prefix}{connector}{Fore.GREEN}{file}{Style.RESET_ALL}")
 
     @staticmethod
-    def remove_package(package: str, flags: str):
+    def remove_package(package: str, flags: str | None = None):
         try:
             Installation.uninstall(package, flags)
-
-        except ValueError as e:
-            print(f"❌ {package} failed to remove: {e}")
-            return
+        except Exception as e:
+            Logger.log(f"❌ {package} failed to remove: {e}", level="error")
 
     @staticmethod
-    def add_package(package, download=False, no_cache=False, upgrade=False, flags=None):
-        try:
-            Installation.reinstall_from_requirements()
-            Installation.install(package, download, no_cache, upgrade, flags)
-
-        except Exception as e:
-            Logger.log(f"🗑️ {package} {"downloading" if download else "installation"} failed: {e}")
+    def add_package(package: str, download: bool = False, no_cache: bool = False, upgrade: bool = False, flags: str | None = None):
+        Installation.install(package, download, no_cache, upgrade, flags)
 
     @staticmethod
     def install():
-        try:
-            Installation.reinstall_from_requirements(True)
+        if not os.path.exists(REQUIREMENTS_FILE):
+            Logger.log(f"❌ {REQUIREMENTS_FILE} not found in {os.getcwd()}", level="error")
+            return
 
-        except Exception as e:
-            print(f"❌ {e}")
+        ensure_project_environment()
+
+        # Decide whether to install from lockfile
+        lockfile_path = get_lockfile_path(find_project_root())
+        if lockfile_path.exists():
+            try:
+                locked = LockfileManager.load_lockfile_manifest()
+                manifest = Manifest.load_requirements_manifest()
+                expected = manifest.get("dependencies", {})
+                manifest_python = manifest.get("python")
+                locked_python = LockfileManager.get_lockfile_python()
+
+                lockfile_usable = locked == expected
+
+                if manifest_python and lockfile_usable:
+                    if not locked_python:
+                        Logger.log(
+                            "⚠️ Lockfile missing Python information, installing from requirements.yaml",
+                            level="warn",
+                        )
+                        lockfile_usable = False
+                    elif locked_python.get("required") != manifest_python:
+                        Logger.log(
+                            "🔁 Lockfile Python requirement changed, installing from requirements.yaml",
+                            level="warn",
+                        )
+                        lockfile_usable = False
+
+                if lockfile_usable:
+                    Logger.log("📦 Installing from lockfile", level="install")
+                    LockfileManager.install_from_lockfile()
+                    return
+                else:
+                    Logger.log("🔁 Lockfile out of sync, installing from requirements.yaml", level="warn")
+            except ValueError as e:
+                Logger.log(f"❌ {e}", level="error")
+                return
+
+        Installation.install_from_requirements(show_log=True)
 
     @staticmethod
     def reinstall():
-        Installation.reinstall_from_requirements()
+        Installation.install_from_requirements()
 
     @staticmethod
-    def init(name: str = None, skip: bool = False):
+    def init(name: str | None = None, skip: bool = False):
         if name:
             os.makedirs(name, exist_ok=True)
             os.chdir(name)
@@ -410,36 +404,34 @@ class Commands:
             }
 
             Manifest.save_manifest(manifest)
-            Environment.ensure_dirs()
+            ensure_project_environment()
 
             with open(entry, "w") as f:
                 f.write("print('Hello, world!')")
 
-            create_git = input("create git repository? (y/n): ").strip().lower()
-
-            while create_git not in ["y", "n"]:
-                print("Invalid input. Please enter 'y' or 'n'.")
+            if not skip:
                 create_git = input("create git repository? (y/n): ").strip().lower()
+                while create_git not in ["y", "n"]:
+                    print("Invalid input. Please enter 'y' or 'n'.")
+                    create_git = input("create git repository? (y/n): ").strip().lower()
 
-            if create_git == "y":
-                process = subprocess.Popen(
-                    ["git", "init"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
+                if create_git == "y":
+                    process = subprocess.Popen(
+                        ["git", "init"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                    )
+                    process.wait()
 
-                process.wait()
+                    Logger.log("📝 Git repository:")
+                    for line in process.stdout:
+                        Logger.log(f"→ {line.strip()}", level="command", indent=1)
 
-                Logger.log(f"📝 Git repository:")
-                for line in process.stdout:
-                    Logger.log(f"→ {line.strip()}", level="command", indent=1)
-
-                print(f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
+                    print(f"Initialized {REQUIREMENTS_FILE} environment in {os.getcwd()}")
 
         else:
-            Logger.log(
-                f"{REQUIREMENTS_FILE} manifest already exists in {os.getcwd()}")
+            Logger.log(f"{REQUIREMENTS_FILE} manifest already exists in {os.getcwd()}")
 
             if not os.path.exists(ENVIRONMENT_DIRECTORY):
                 Logger.log(
@@ -447,139 +439,99 @@ class Commands:
                     indent=1,
                     level="command",
                 )
+                ensure_project_environment()
                 Logger.log(
                     f"✅ {ENVIRONMENT_DIRECTORY} environment created",
                     indent=1,
                     level="success",
                 )
-                Environment.ensure_dirs()
+
+    @staticmethod
+    def cache(action: str):
+        result = run_project_pip(
+            ["cache", action],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        for line in result.stdout.splitlines():
+            Logger.log(line.strip(), level="command")
+        if result.returncode != 0:
+            Logger.log("❌ pip cache command failed", level="error")
 
     @staticmethod
     def wheel(name: str):
-        args = list(
-            filter(None, [
-                Environment.get_env_python(),
-                "-m",
-                "pip",
-                "wheel",
-                {"name": name}
-            ])
+        if not _has_module("wheel"):
+            Logger.log("❌ 'wheel' is not installed in the project environment.", level="error")
+            Logger.log("   Run: byper add wheel", level="command")
+            return
+
+        result = run_project_pip(
+            ["wheel", name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
         )
-        
-        process = subprocess.Popen(
-            args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-        )
-
-        for index, line in enumerate(process.stdout):
-            if index == 0:
-                Logger.log(line.strip(), level="success", indent=0)
-
-            else:
-                Logger.log(line.strip(), level="command", indent=0)
-
-        if process.stderr:
-            for line in process.stderr:
-                Logger.log(f"❌ {line.strip()}", level="error", indent=1)
-
-        process.wait()
+        for line in result.stdout.splitlines():
+            Logger.log(line.strip(), level="command")
+        if result.returncode != 0:
+            Logger.log(f"❌ Failed to build wheel for {name}", level="error")
 
     @staticmethod
-    def list(flags=[]):
-        try:
-            args_list = [f"--{arg}" if arg == "outdated" else arg for arg in flags]
-            show_cache = "cache" in args_list
-            args_str = " ".join(flags or [])
+    def list(flags=None):
+        flags = flags or []
+        args_list = [f"--{arg}" if arg == "outdated" else arg for arg in flags]
+        show_cache = "cache" in args_list
 
-            cache_args = list(
-                filter(None, [
-                    Environment.get_env_python(),
-                    "-m",
-                    "pip",
-                    "cache",
-                    "list"
-                ])
-            )
-            args = list(
-                filter(None, [
-                    Environment.get_env_python(),
-                    "-m",
-                    "pip",
-                    "list",
-                    args_str or ""
-                ])
-            )
+        pip_args = ["cache", "list"] if show_cache else ["list"] + [arg for arg in flags if arg]
+        result = run_project_pip(
+            pip_args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
 
-            process = subprocess.Popen(
-                cache_args if show_cache else args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-            )
+        for index, line in enumerate(result.stdout.splitlines()):
+            if index == 0:
+                Logger.log(line.strip(), level="success")
+            else:
+                Logger.log(line.strip(), level="command")
 
-            for index, line in enumerate(process.stdout):
-                if index == 0:
-                    Logger.log(line.strip(), level="success", indent=0)
-
-                else:
-                    Logger.log(line.strip(), level="command", indent=0)
-
-            if process.stderr:
-                for line in process.stderr:
-                    Logger.log(f"❌ {line.strip()}", level="error", indent=1)
-
-            process.wait()
-
-        except Exception as e:
-            print(f"❌ {e}")
-            return None, None
+        if result.returncode != 0:
+            Logger.log("❌ pip list failed", level="error")
 
     @staticmethod
     def run_script(_script: str):
+        validate_project_environment()
+
         script = Manifest.load_script_from_manifest(_script)
         if not script:
             print(f"Script '{_script}' not found in manifest.")
             return
 
-        # Build environment for subprocess
-        env_path = os.environ.copy()
-        venv_bin = os.path.dirname(Environment.get_env_python())
-        env_path["PATH"] = f"{venv_bin}:{env_path.get('PATH', '')}"
-        env_path["VIRTUAL_ENV"] = os.path.abspath(os.path.dirname(venv_bin))
-
-        subprocess.run(script, shell=True, env=env_path)
+        run_in_project(script, check=True)
 
     @staticmethod
     def run_python_file(file_path: str):
-        # Ensure it's a .py file
         if not file_path.endswith(".py"):
-            Logger.log("❌ Only Python files (.py) can be executed.",
-                       level="debug")
+            Logger.log("❌ Only Python files (.py) can be executed.", level="debug")
             return
 
-        # Get the path to the virtual environment's Python interpreter
-        env_python = Environment.get_env_python()
-
-        if not os.path.exists(env_python):
-            Logger.log(
-                f"❌ No byper environment found at {os.getcwd()}", level="debug")
+        project_python = get_project_python()
+        if not project_python.exists():
+            Logger.log(f"❌ No byper environment found at {os.getcwd()}", level="debug")
             return
 
-        # Build environment variables
-        env_path = os.environ.copy()
-        venv_bin = os.path.dirname(env_python)
-        env_path["PATH"] = f"{venv_bin}{os.pathsep}{env_path.get('PATH', '')}"
-        env_path["VIRTUAL_ENV"] = os.path.abspath(os.path.dirname(venv_bin))
-
-        # Run the file using the virtual environment's Python
         try:
-            subprocess.run([env_python, file_path], env=env_path, check=True)
+            run_project_python([file_path], check=True)
         except subprocess.CalledProcessError as e:
-            Logger.log(
-                f"❌ Script exited with error: {e.stderr}", level="error")
+            Logger.log(f"❌ Script exited with error: {e.stderr}", level="error")
 
     @staticmethod
     def login():
         Logger.log("🔐 PyPI Login Setup", newline=True, level="install")
-        Logger.log(f"To upload packages to PyPI, you need an API token.")
-
-        Logger.log(f"You can generate one here:")
+        Logger.log("To upload packages to PyPI, you need an API token.")
+        Logger.log("You can generate one here:")
         Logger.log(
             "→ https://pypi.org/manage/account/#api-tokens",
             indent=1,
@@ -590,16 +542,14 @@ class Commands:
         Logger.log("Opening link in your browser...", level="command")
         webbrowser.open("https://pypi.org/manage/account/#api-tokens")
 
+        from colorama import Fore, Style
         prompt = f"{Fore.BLUE}Enter your PyPI API token (starts with 'pypi-'): {Style.RESET_ALL}"
         token = input(prompt).strip()
 
         if not token.startswith("pypi-"):
-            Logger.log(
-                "⚠️ Warning: This doesn't look like a valid PyPI API token", level="warn"
-            )
+            Logger.log("⚠️ Warning: This doesn't look like a valid PyPI API token", level="warn")
             return
 
-        # Save token to ~/.pypirc
         pypirc_path = os.path.expanduser("~/.pypirc")
         config = ConfigParser()
 
@@ -623,37 +573,36 @@ class Commands:
         pypirc_path = os.path.expanduser("~/.pypirc")
         if os.path.exists(pypirc_path):
             os.remove(pypirc_path)
-            Logger.log(
-                f"✅ PyPI credentials removed from {pypirc_path}", level="success"
-            )
+            Logger.log(f"✅ PyPI credentials removed from {pypirc_path}", level="success")
         else:
-            Logger.log(
-                f"❌ PyPI credentials not found at {pypirc_path}", level="error")
+            Logger.log(f"❌ PyPI credentials not found at {pypirc_path}", level="error")
 
     @staticmethod
-    def build(dist_dir="build"):
+    def build(dist_dir="dist"):
         project_root = Path.cwd()
         dist_path = project_root / dist_dir
 
-        # Clean previous dist
         if dist_path.exists():
             shutil.rmtree(dist_path)
 
-        Logger.log("📦 Building distribution using global Python...")
-
-        try:
-            python_env = Environment.get_env_python()
-            subprocess.run([python_env, "-m", "build"], check=True)
-            Logger.log("✅ Build completed successfully!")
-        except subprocess.CalledProcessError as e:
-            Logger.log(
-                f"❌ Build failed. Make sure `build` is installed globally, {e.stderr})", level="error")
+        if not _has_module("build"):
+            Logger.log("❌ 'build' is not installed in the project environment.", level="error")
+            Logger.log("   Run: byper add build", level="command")
             return False
 
-        return True
+        project_python = get_project_python()
+        Logger.log(f"📦 Building distribution using project Python: {project_python}")
+
+        try:
+            run_project_python(["-m", "build"], check=True)
+            Logger.log("✅ Build completed successfully!")
+            return True
+        except subprocess.CalledProcessError as e:
+            Logger.log(f"❌ Build failed: {e}", level="error")
+            return False
 
     @staticmethod
-    def publish(dist_dir="build"):
+    def publish(dist_dir="dist"):
         project_root = Path.cwd()
         dist_path = project_root / dist_dir
         pypirc = Path.home() / ".pypirc"
@@ -661,36 +610,38 @@ class Commands:
         Logger.log("🚀 Preparing to upload your package to PyPI...\n")
 
         if not pypirc.exists():
-            Logger.log(
-                "❌ PyPI credentials not found. Please run the login command first."
-            )
+            Logger.log("❌ PyPI credentials not found. Please run the login command first.")
             return
 
-        if (
-            not (project_root / "setup.py").exists()
-            and not (project_root / "pyproject.toml").exists()
-        ):
+        if not (project_root / "setup.py").exists() and not (project_root / "pyproject.toml").exists():
             Logger.log("❌ No setup.py or pyproject.toml found. Cannot proceed.")
             return
 
-        build = Commands.build(dist_dir)
-        if not build:
+        if not _has_module("twine"):
+            Logger.log("❌ 'twine' is not installed in the project environment.", level="error")
+            Logger.log("   Run: byper add twine", level="command")
             return
 
-        Logger.log("📤 Uploading via twine using global Python...")
+        build_ok = Commands.build(dist_dir)
+        if not build_ok:
+            return
+
+        Logger.log("📤 Uploading via twine using project Python...")
 
         try:
-            subprocess.run(
-                ["python", "-m", "twine", "upload", f"{dist_path}/*"],
-                check=True,
+            result = run_project_python(
+                ["-m", "twine", "upload", f"{dist_path}/*"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                text=True,
+                check=True,
             )
+            Logger.log(result.stdout, level="command")
             Logger.log("✅ Successfully uploaded to PyPI!", level="success")
         except subprocess.CalledProcessError as e:
             Logger.log("❌ Upload failed.", level="error")
             if e.stdout:
-                Logger.log(e.stdout.decode(), level="error")
+                Logger.log(e.stdout, level="error")
 
     @staticmethod
     def refresh():
@@ -700,5 +651,5 @@ class Commands:
             Logger.log("🔄 Refreshing byper aliases...")
             AliasModule()
             Logger.log("✅ Aliases refreshed!", level="success")
-        except:
-            Logger.log("❌ Failed to refresh aliases.", level="error")
+        except Exception as e:
+            Logger.log(f"❌ Failed to refresh aliases: {e}", level="error")

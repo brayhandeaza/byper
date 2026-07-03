@@ -1,119 +1,150 @@
-import importlib
 import os
 from pathlib import Path
-import subprocess
-from typing import TYPE_CHECKING
-from byper.__core__.constants import LOCKFILE
-from ruamel.yaml import YAML
-import yaml
+from typing import TYPE_CHECKING, Optional
 
+from byper.__core__.constants import LOCKFILE_NAME, get_lockfile_path
+from byper.__core__.project_env import find_project_root
+from ruamel.yaml import YAML
 
 if TYPE_CHECKING:
-    from byper.__core__.environment import Environment
     from byper.__core__.utils.logger import Logger
-    from byper.__core__.commands import Commands
 
-Environment = getattr(importlib.import_module("byper.__core__.environment"), "Environment")
-Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
-Commands = getattr(importlib.import_module("byper.__core__.commands"), "Commands")
+Logger = getattr(__import__("byper.__core__.utils.logger", fromlist=["Logger"]), "Logger")
 
 
-class Lockfile:
+class LockfileManager:
     @staticmethod
-    def load_lockfile_manifest():
-        if not os.path.exists(LOCKFILE):
+    def _resolve_project_root(project_root: Optional[Path | str] = None) -> Path:
+        return Path(project_root or find_project_root()).resolve()
+
+    @staticmethod
+    def load_lockfile_data(project_root: Optional[Path | str] = None):
+        """Load the full lockfile contents as a dictionary."""
+        lockfile_path = get_lockfile_path(LockfileManager._resolve_project_root(project_root))
+        if not lockfile_path.exists():
             return {}
 
         yaml = YAML()
-        with open(LOCKFILE, "r") as f:
+        with open(lockfile_path, "r") as f:
             data = yaml.load(f) or {}
 
+        if not isinstance(data, dict):
+            raise ValueError(f"Lockfile {lockfile_path.name} is corrupt: root is not a mapping")
+
+        return data
+
+    @staticmethod
+    def load_lockfile_manifest(project_root: Optional[Path | str] = None):
+        data = LockfileManager.load_lockfile_data(project_root)
+
         packages = data.get("packages", {})
+        if packages is None:
+            packages = {}
+
+        if not isinstance(packages, dict):
+            raise ValueError(f"Lockfile {LOCKFILE_NAME} is corrupt: 'packages' is not a mapping")
+
         return dict(packages)
 
     @staticmethod
-    def write_lockfile(package: dict):
-        lock_entry = {
-            package["name"]: {
-                "version": package["version"],
-                "filename": package["filename"],
-                "filetype": package["filetype"],
-                "url": package["url"],
-                "hash": package["hash"],
-                "bin_files": package.get("bin_files", []),
-                "dependencies": package.get("dependencies", []),
-            }
-        }
+    def get_lockfile_python(project_root: Optional[Path | str] = None):
+        """Return the python section from the lockfile, if present."""
+        data = LockfileManager.load_lockfile_data(project_root)
+        python = data.get("python")
+        if isinstance(python, dict):
+            return dict(python)
+        return None
 
+    @staticmethod
+    def write_lockfile(package_name: str, version: str, project_root: Optional[Path | str] = None):
         yaml = YAML()
         yaml.preserve_quotes = True
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.width = 4096
 
-        # Load existing lockfile data if it exists
-        if Path(LOCKFILE).exists():
-            with open(LOCKFILE, "r") as f:
+        lockfile_path = get_lockfile_path(LockfileManager._resolve_project_root(project_root))
+        if lockfile_path.exists():
+            with open(lockfile_path, "r") as f:
                 data = yaml.load(f) or {}
-
         else:
             data = {}
 
-        data.setdefault("packages", {}).update(lock_entry)
+        if not isinstance(data, dict):
+            data = {}
 
-        with open(LOCKFILE, "w") as f:
+        data.setdefault("packages", {})[package_name] = version
+
+        with open(lockfile_path, "w") as f:
             yaml.dump(data, f)
 
     @staticmethod
-    def remove_from_lockfile(package_name: str):
-        lockfile_path = Path(LOCKFILE)
+    def remove_from_lockfile(package_name: str, project_root: Optional[Path | str] = None):
+        lockfile_path = get_lockfile_path(LockfileManager._resolve_project_root(project_root))
         if not lockfile_path.exists():
-            Logger.log("🔍 Lockfile does not exist.", level="warn")
             return
 
+        yaml = YAML()
         with open(lockfile_path, "r") as f:
-            try:
-                data = yaml.safe_load(f) or {}
-            except yaml.YAMLError as e:
-                Logger.log(f"🗑️ Failed to parse lockfile: {e}", level="error")
-                return
+            data = yaml.load(f) or {}
+
+        if not isinstance(data, dict):
+            return
 
         packages = data.get("packages", {})
-        if package_name not in packages:
+        if not isinstance(packages, dict) or package_name not in packages:
             return
-
-        package = packages.get(package_name, {})
-        bin_files = package.get("bin_files", [])
-
-        # Remove installed bin files
-        for bin_file in bin_files:
-            file_path = f"{Environment.get_install_dir()}/bin/{bin_file}"
-            if os.path.exists(file_path):
-                os.remove(file_path)
 
         del packages[package_name]
 
-        # Clean up if no packages left
         if not packages:
             data = {}
         else:
             data["packages"] = packages
 
         with open(lockfile_path, "w") as f:
-            yaml.safe_dump(data, f, sort_keys=False)
+            yaml.dump(data, f)
 
     @staticmethod
-    def install_from_lockfile():
+    def sync_lockfile(
+        dependencies: dict,
+        python_info: dict | None = None,
+        project_root: Optional[Path | str] = None,
+    ):
+        """Overwrite the lockfile with the current dependency map."""
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        yaml.width = 4096
 
-        if not os.path.exists(LOCKFILE):
-            print(f"Lockfile {LOCKFILE} not found.")
+        lockfile_path = get_lockfile_path(LockfileManager._resolve_project_root(project_root))
+        existing = LockfileManager.load_lockfile_data(project_root)
+
+        data: dict = {"lock_version": 1, "packages": dict(dependencies)}
+        if python_info is not None:
+            data["python"] = python_info
+        elif existing.get("python"):
+            data["python"] = dict(existing["python"])
+
+        with open(lockfile_path, "w") as f:
+            yaml.dump(data, f)
+
+    @staticmethod
+    def install_from_lockfile(project_root: Optional[Path | str] = None):
+        packages = LockfileManager.load_lockfile_manifest(project_root)
+
+        if not packages:
+            Logger.log(f"🔍 Lockfile {LOCKFILE_NAME} empty or not found.", level="warn")
             return
-        with open(LOCKFILE, "r") as f:
-            lock_data = yaml.safe_load(f)
-        packages = lock_data.get("package", {})
-        for pkg, info in packages.items():
-            version = info.get("version")
+
+        from byper.__core__.installation import Installation
+
+        for pkg, version in packages.items():
+            if not version:
+                Logger.log(f"❌ Lockfile entry for {pkg} has no version", level="error")
+                continue
             try:
-                Commands.add_package(f"{pkg}=={version}")
-            except subprocess.CalledProcessError:
-                print(f"Failed to install {pkg}=={version}")
-        print(f"Installed dependencies from {LOCKFILE}")
+                Installation.install(f"{pkg}=={version}", update_manifest=False)
+            except Exception as e:
+                Logger.log(f"❌ Failed to install {pkg}=={version}: {e}", level="error")
+
+        Logger.log(f"✅ Installed dependencies from {LOCKFILE_NAME}", level="success")

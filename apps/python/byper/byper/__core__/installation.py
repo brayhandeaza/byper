@@ -1,232 +1,195 @@
-import importlib
+import json
 import subprocess
 from typing import TYPE_CHECKING
+
 import requests
-from byper.__core__.helpers import is_vcs_url
 from packaging.requirements import Requirement
-from packaging.version import Version
 from packaging.specifiers import SpecifierSet
+from packaging.version import Version
+
+from byper.__core__.helpers import is_vcs_url
+from byper.__core__.lockfile import LockfileManager
+from byper.__core__.project_env import (
+    ensure_project_environment,
+    get_project_python_lock_info,
+    run_project_pip,
+)
 
 if TYPE_CHECKING:
     from byper.__core__.manifest import Manifest
-    from byper.__core__.environment import Environment
     from byper.__core__.utils.logger import Logger
 
-
-Environment = getattr(importlib.import_module("byper.__core__.environment"), "Environment")
-Manifest = getattr(importlib.import_module("byper.__core__.manifest"), "Manifest")
-Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
+Manifest = getattr(__import__("byper.__core__.manifest", fromlist=["Manifest"]), "Manifest")
+Logger = getattr(__import__("byper.__core__.utils.logger", fromlist=["Logger"]), "Logger")
 
 
 class Installation:
     @staticmethod
-    def install(package: str, download: bool = False, no_cache: bool = False, upgrade: bool = False, flags=None) -> str | None:
+    def install(
+        package: str,
+        download: bool = False,
+        no_cache: bool = False,
+        upgrade: bool = False,
+        flags: str | None = None,
+        update_manifest: bool = True,
+    ) -> tuple[str | None, str | None]:
         try:
-            Logger.log(f"\n📦 {" Downloading " if download else " Installing "}{package}")
-            Environment.ensure_dirs()
-            name = package
-            version = ""
+            Logger.log(f"\n📦 {'Downloading' if download else 'Installing'} {package}")
+            ensure_project_environment()
 
             is_url = is_vcs_url(package)
+            name = package
+            version: str | None = None
 
             if not is_url:
-                manifest: dict = Manifest.load_requirements_manifest()
                 name, version = Installation.resolve_installable_version(package)
-                is_installed = Installation.is_package_installed(name)
+                if version is None and "==" not in package and ">=" not in package and "<=" not in package:
+                    raise RuntimeError(f"Could not resolve a compatible version for '{package}'")
 
-            # Install package using env Python
-            version_to_install = f"=={version}" if version else ""
+            version_spec = f"=={version}" if version and not is_url else ""
 
-            download_args = list(
-                filter(
-                    None,
-                    [
-                        Environment.get_env_python(),
-                        "-m",
-                        "pip",
-                        "download",
-                        f"{name}"
-                    ],
-                )
-            )
+            pip_args = ["download" if download else "install"]
+            if upgrade:
+                pip_args.append("--upgrade")
+            pip_args.append(f"{name}{version_spec}")
+            if no_cache:
+                pip_args.append("--no-cache-dir")
+            if flags:
+                pip_args.extend(flags.split())
 
-            args = list(
-                filter(
-                    None,
-                    [
-                        Environment.get_env_python(),
-                        "-m",
-                        "pip",
-                        "install",
-                        "--upgrade" if upgrade else None,
-                        f"{name}{version_to_install if is_url else ''}",
-                        "--disable-pip-version-check",
-                        "--no-cache-dir" if no_cache else None,
-                        flags if flags else None,
-                    ],
-                )
-            )
-
-            process = subprocess.Popen(
-                download_args if download else args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
-            )
-
-            last_line = ""
-            for line in process.stdout:
-                last_line = line.strip()
-
-                if "Successfully installed" in last_line:
-                    Logger.log(f"✅ {line.strip()}", level="success", indent=1)
-
-                else:
-                    Logger.log(line.strip(), level="command", indent=1)
-
-            if is_installed:
-                Logger.log(
-                    f"✅ {name}=={version} is already {"downloaded" if download else "installed"}.",
-                    level="install",
-                    indent=1,
-                )
-
-            if process.stderr:
-                for line in process.stderr:
-                    Logger.log(f"❌ {line.strip()}", level="error", indent=1)
-
-            process.wait()
-
-            manifest.setdefault("dependencies", {})[name] = version
-            Manifest.save_manifest(manifest)
-
-            return name, version
-
-        except Exception as e:
-            print(f"❌ {e}")
-            return None, None
-
-    @staticmethod
-    def reinstall_from_requirements(show_logdown: bool = False, no_cache: bool = False):
-        try:
-            Environment.ensure_dirs()
-            manifest = Manifest.load_requirements_manifest()
-            dependencies = dict(manifest.get("dependencies", {}))
-
-            if not dependencies:
-                return
-
-            if show_logdown and len(dependencies) > 0:
-                Logger.log(f"📦 Reinstalling dependencies", level="install")
-
-            for m_package, version in dependencies.items():
-                is_installed = Installation.is_package_installed(m_package)
-
-                if not is_installed:
-                    package_to_install = f"{m_package}=={version}"
-                    Installation.install(package_to_install, no_cache)
-
-                else:
-                    if show_logdown:
-                        Logger.log(
-                            f"✅ {m_package} is already installed.",
-                            level="command",
-                            indent=1,
-                        )
-
-        except subprocess.CalledProcessError as e:
-            Logger.log(f"❌ Failed to install dependencies: {e}", level="error")
-            raise Exception
-
-    @staticmethod
-    def uninstall(package: str, flags: str = None) -> str | None:
-        try:
-            Environment.ensure_dirs()
-            name, _ = Installation.resolve_installable_version(package)
-
-            Logger.log(f"\n📦 Uninstalling {package}", level="install")
-
-            remove_cache = "--rm-cache" in flags
-            process = subprocess.Popen(
-                [
-                    Environment.get_env_python(),
-                    "-m",
-                    "pip",
-                    "--disable-pip-version-check",
-                    "uninstall",
-                    "-y",
-                    f"{name}",
-                ],
+            result = run_project_pip(
+                pip_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
             )
 
-            process.wait()
-
-            last_line = ""
-            for line in process.stdout:
-                last_line = line.strip()
-
-                if "Successfully uninstalled" in last_line:
-                    Logger.log(f"❌ {line.strip()}", level="remove", indent=1)
-
+            for line in result.stdout.splitlines():
+                if "Successfully installed" in line or "Successfully downloaded" in line:
+                    Logger.log(line.strip(), level="success", indent=1)
                 else:
                     Logger.log(line.strip(), level="command", indent=1)
 
-            if process.stderr:
-                for line in process.stderr:
-                    Logger.log(f"❌ {line.strip()}", level="error", indent=1)
+            if result.returncode != 0:
+                raise RuntimeError(f"pip failed with exit code {result.returncode}")
 
-            if remove_cache:
-                # pip cache remove pandas
+            # Determine the actually installed version
+            installed_version = Installation.get_installed_version(name) if not is_url else ""
+            final_version = installed_version or version or ""
 
-                cache = subprocess.run(
-                    [
-                        Environment.get_env_python(),
-                        "-m",
-                        f"pip",
-                        f"cache",
-                        f"remove",
-                        f"{name}"
-                    ],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
+            if update_manifest:
+                manifest = Manifest.load_requirements_manifest()
+                manifest.setdefault("dependencies", {})[name] = final_version
+                dependencies = dict(manifest.get("dependencies", {}))
+                Manifest.save_manifest(manifest)
+                LockfileManager.sync_lockfile(
+                    dependencies,
+                    python_info=get_project_python_lock_info(),
                 )
 
-                Logger.log(f"\n📦 Removing {name} from cache", level="success")
-                Logger.log(cache.stdout.strip(), level="command", indent=1)
+            return name, final_version
 
-                if cache.stderr:
-                    for line in cache.stderr:
-                        Logger.log(f"❌ {line.strip()}", level="error", indent=1)
-
-            manifest = Manifest.load_requirements_manifest()
-            dependencies: dict = dict(manifest.get("dependencies", {}))
-
-            if name in dependencies:
-                del dependencies[name]
-
-                manifest["dependencies"] = dependencies
-                Manifest.save_manifest(manifest)
-
-        except subprocess.CalledProcessError as e:
-            raise ValueError(e.stderr)
+        except Exception as e:
+            Logger.log(f"❌ {package} {'download' if download else 'installation'} failed: {e}", level="error")
+            return None, None
 
     @staticmethod
-    def is_package_installed(package: str):
-        try:
-            env_python = Environment.get_env_python()
-            subprocess.run(
-                [env_python, "-m", "pip", "show", package],
+    def install_from_requirements(show_log: bool = False, no_cache: bool = False):
+        ensure_project_environment()
+        manifest = Manifest.load_requirements_manifest()
+        dependencies = dict(manifest.get("dependencies", {}))
+
+        if dependencies:
+            if show_log:
+                Logger.log("📦 Installing dependencies", level="install")
+
+            for package_name, version in dependencies.items():
+                if Installation.is_package_installed(package_name):
+                    if show_log:
+                        Logger.log(f"✅ {package_name} is already installed.", level="command", indent=1)
+                    continue
+
+                spec = f"{package_name}=={version}" if version else package_name
+                Installation.install(spec, no_cache=no_cache, update_manifest=False)
+
+        # Sync lockfile with current dependencies after install
+        LockfileManager.sync_lockfile(dependencies, python_info=get_project_python_lock_info())
+
+    @staticmethod
+    def uninstall(package: str, flags: str | None = None):
+        ensure_project_environment()
+
+        # Normalize to the actual package name if possible
+        name = Installation.resolve_installable_version(package)[0]
+        if not name:
+            name = package
+
+        Logger.log(f"\n📦 Uninstalling {name}", level="install")
+
+        remove_cache = bool(flags and "--rm-cache" in flags)
+
+        result = run_project_pip(
+            ["uninstall", "-y", name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+
+        for line in result.stdout.splitlines():
+            if "Successfully uninstalled" in line:
+                Logger.log(line.strip(), level="remove", indent=1)
+            else:
+                Logger.log(line.strip(), level="command", indent=1)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to uninstall {name}")
+
+        if remove_cache:
+            cache_result = run_project_pip(
+                ["cache", "remove", name],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=True,
             )
+            Logger.log(f"\n📦 Removing {name} from cache", level="success")
+            Logger.log(cache_result.stdout.strip(), level="command", indent=1)
 
-            return True
+        manifest = Manifest.load_requirements_manifest()
+        dependencies: dict = dict(manifest.get("dependencies", {}))
 
-        except subprocess.CalledProcessError as e:
-            return False
+        if name in dependencies:
+            del dependencies[name]
+            manifest["dependencies"] = dependencies
+            Manifest.save_manifest(manifest)
+
+        LockfileManager.remove_from_lockfile(name)
+
+    @staticmethod
+    def is_package_installed(package: str) -> bool:
+        result = run_project_pip(
+            ["show", package],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        return result.returncode == 0
+
+    @staticmethod
+    def get_installed_version(package: str) -> str | None:
+        result = run_project_pip(
+            ["show", package],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        if result.returncode != 0:
+            return None
+
+        for line in result.stdout.splitlines():
+            if line.startswith("Version:"):
+                return line.split(":", 1)[1].strip()
+
+        return None
 
     @staticmethod
     def resolve_installable_version(requirement_str: str):
@@ -236,7 +199,7 @@ class Installation:
             specifier: SpecifierSet = requirement.specifier
 
             url = f"https://pypi.org/pypi/{name}/json"
-            resp = requests.get(url)
+            resp = requests.get(url, timeout=10)
             if resp.status_code != 200:
                 return name, None
 

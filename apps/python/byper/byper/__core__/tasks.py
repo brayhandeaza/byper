@@ -1,19 +1,23 @@
+import json
 import os
 import sys
-import subprocess
 import builtins
 import importlib
 from typing import TYPE_CHECKING
 
+from byper.__core__.project_env import run_in_project, run_project_python, validate_project_environment
+
 if TYPE_CHECKING:
     from byper.__core__.manifest import Manifest
 
-Manifest = getattr(importlib.import_module("byper.__core__.manifest"), "Manifest")
+Manifest = getattr(__import__("byper.__core__.manifest", fromlist=["Manifest"]), "Manifest")
 
 
 class Tasks:
     @staticmethod
     def run_task(name: str):
+        validate_project_environment()
+
         task_lines = Manifest.load_tasks_from_manifest(name)
         scripts = Manifest.load_requirements_manifest().get("scripts", {})
 
@@ -27,7 +31,6 @@ class Tasks:
 
         for i, line in enumerate(task_lines, 1):
             if isinstance(line, dict) and "call" in line:
-                # Function call with args/kwargs
                 func_path = line["call"]
                 raw_args = line.get("args", [])
                 kwargs = line.get("kwargs", {})
@@ -41,7 +44,6 @@ class Tasks:
                 Tasks._call_function(func_path, args=args, kwargs=kwargs)
 
             elif isinstance(line, dict) and "file" in line:
-                # Run external Python file
                 file_path = line["file"]
                 Tasks._run_python_file(file_path)
 
@@ -64,7 +66,6 @@ class Tasks:
                         print(f"[Line {i}] Error executing Python line: '{line}': {e}")
 
             elif isinstance(line, dict) and len(line) == 1:
-                # Special case like: { 'with open(...) as f': 'f.write(...)' }
                 key, value = list(line.items())[0]
                 combined = f"{key}: {value}" if not key.strip().endswith(":") else f"{key} {value}"
                 try:
@@ -81,8 +82,8 @@ class Tasks:
         if script_command:
             print(f"> Running script '{script_name}': {script_command}")
             try:
-                subprocess.run(script_command, shell=True, check=True)
-            except subprocess.CalledProcessError as e:
+                run_in_project(script_command, check=True)
+            except Exception as e:
                 print(f"Script execution failed: {e}")
         else:
             print(f"Script '{script_name}' not found.")
@@ -94,25 +95,31 @@ class Tasks:
             return
         print(f"> Running Python file: {file_path}")
         try:
-            subprocess.run(["python", file_path], check=True)
-        except subprocess.CalledProcessError as e:
+            run_project_python([file_path], check=True)
+        except Exception as e:
             print(f"Python file execution failed: {e}")
 
     @staticmethod
     def _call_function(func_path: str, args=None, kwargs=None):
-        """
-        Import and call a Python function by full path like 'mymodule.myfunc',
-        supporting optional positional and keyword arguments.
-        """
-        try:
-            cwd = os.getcwd()
-            if cwd not in sys.path:
-                sys.path.insert(0, cwd)
+        """Ejecuta una función del proyecto dentro del Python del environment local."""
+        args = args or []
+        kwargs = kwargs or {}
 
-            module_name, func_name = func_path.rsplit(".", 1)
-            module = importlib.import_module(module_name)
-            func = getattr(module, func_name)
-            print(f"> Calling function {func_path}({args or ''}{', ' if args and kwargs else ''}{kwargs or ''})")
-            func(*(args or []), **(kwargs or {}))
+        args_json = json.dumps(args)
+        kwargs_json = json.dumps(kwargs)
+
+        code = f"""
+import json, os, sys
+sys.path.insert(0, {json.dumps(os.getcwd())})
+args = json.loads({json.dumps(args_json)})
+kwargs = json.loads({json.dumps(kwargs_json)})
+module_name, func_name = {json.dumps(func_path)}.rsplit('.', 1)
+module = __import__(module_name, fromlist=[func_name])
+func = getattr(module, func_name)
+print("> Calling function " + {json.dumps(func_path)})
+func(*args, **kwargs)
+"""
+        try:
+            run_project_python(["-c", code], check=True)
         except Exception as e:
             print(f"Failed to call function '{func_path}': {e}")
