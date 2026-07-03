@@ -1,15 +1,25 @@
-import importlib
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
+
 from byper.__core__.constants import ENVIRONMENT_DIRECTORY
+from byper.__core__.project_env import (
+    build_project_env,
+    ensure_project_environment,
+    find_project_root,
+    get_packages_dir,
+    get_project_bin_dir,
+    get_project_python,
+    get_project_site_packages,
+    run_project_pip,
+)
 
 if TYPE_CHECKING:
     from byper.__core__.utils.logger import Logger
 
-Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
+from byper.__core__.utils.logger import Logger
 
 
 class Environment:
@@ -19,8 +29,10 @@ class Environment:
         for root, dirs, files in os.walk(os.getcwd()):
             rel_root = os.path.relpath(root, os.getcwd())
 
-            # Skip Packages/ itself
-            if rel_root == "Packages" or rel_root.startswith("Packages" + os.sep):
+            # Skip packages/ itself
+            if rel_root == ENVIRONMENT_DIRECTORY or rel_root.startswith(
+                ENVIRONMENT_DIRECTORY + os.sep
+            ):
                 continue
 
             is_env = (
@@ -50,20 +62,18 @@ class Environment:
 
     @staticmethod
     def outdated_packages(is_warn: bool = True):
-        output = subprocess.Popen(
-            ["pip", "list", "--outdated"],
-            text=True,
+        result = run_project_pip(
+            ["list", "--outdated"],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
+            text=True,
         )
-        output.wait()
 
         Logger.log("↪ Outdated packages:", indent=1, level="warn" if is_warn else "")
         packages = []
-        for line in output.stdout:
+        for line in result.stdout.splitlines():
             if line.startswith("Package") or line.startswith("----"):
                 Logger.log(f"  {line.strip()}", indent=2, level="command")
-
             else:
                 Logger.log(f"↪ {line.strip()}", indent=2, level="command")
                 packages.append(line.strip().split(" ")[0])
@@ -72,18 +82,19 @@ class Environment:
 
     @staticmethod
     def get_install_dir():
-        return f"Packages/lib/python{Environment.get_python_version()}/site-packages"
+        return str(get_project_site_packages())
 
     @staticmethod
     def get_env_python():
-        return os.path.join(ENVIRONMENT_DIRECTORY, "bin", "python")
+        return str(get_project_python())
+
+    @staticmethod
+    def get_env_bin_dir():
+        return str(get_project_bin_dir())
 
     @staticmethod
     def ensure_dirs(workspace: str = "./"):
-        if not os.path.exists(workspace + ENVIRONMENT_DIRECTORY):
-            subprocess.check_call(
-                [sys.executable, "-m", "venv", workspace + ENVIRONMENT_DIRECTORY]
-            )
+        return ensure_project_environment(workspace)
 
     @staticmethod
     def get_library_root():
@@ -91,7 +102,11 @@ class Environment:
 
     @staticmethod
     def get_cache_dir():
-        cache_dir = Environment.get_library_root() / ".cache/packages"
+        cache_dir = Environment.get_library_root() / ".cache" / "packages"
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         return cache_dir
+
+    @staticmethod
+    def get_project_root():
+        return str(find_project_root())

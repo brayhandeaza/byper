@@ -1,0 +1,11 @@
+name: test
+version: 0.0.1
+entry: main.py
+license: MIT
+
+scripts:
+  start: python main.py
+
+dependencies:
+  fastapi: 0.136.1
+  uvicorn: 0.47.0

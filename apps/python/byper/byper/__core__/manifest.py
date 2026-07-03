@@ -1,19 +1,17 @@
-import importlib
 import json
 import os
 import subprocess
 from typing import TYPE_CHECKING
-from byper.__core__.constants import REQUIREMENTS_FILE
+
 from ruamel.yaml import YAML
 
+from byper.__core__.constants import REQUIREMENTS_FILE
+from byper.__core__.project_env import run_project_pip
 
 if TYPE_CHECKING:
-    from byper.__core__.environment import Environment
     from byper.__core__.utils.logger import Logger
 
-
-Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
-Environment = getattr(importlib.import_module("byper.__core__.environment"), "Environment")
+Logger = getattr(__import__("byper.__core__.utils.logger", fromlist=["Logger"]), "Logger")
 
 
 class Manifest:
@@ -76,6 +74,7 @@ class Manifest:
                 "entry": None,
                 "license": None,
                 "author": None,
+                "python": None,
                 "scripts": {},
                 "aliases": {},
                 "tasks": {},
@@ -94,6 +93,7 @@ class Manifest:
             "entry": data.get("entry"),
             "license": data.get("license"),
             "author": data.get("author"),
+            "python": data.get("python"),
 
             "scripts": dict(data.get("scripts", {}) or {}),
             "aliases": dict(data.get("aliases", {}) or {}),
@@ -104,17 +104,17 @@ class Manifest:
 
     @staticmethod
     def load_installed_manifest():
-        env_python = Environment.get_env_python()
-
         Logger.log("↪ Scanning installed packages from environment", indent=1)
 
         try:
-            result = subprocess.run(
-                [env_python, "-m", "pip", "list", "--format=json"],
-                capture_output=True,
+            result = run_project_pip(
+                ["list", "--format=json"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                check=True,
             )
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr)
             packages = json.loads(result.stdout)
 
         except Exception as e:

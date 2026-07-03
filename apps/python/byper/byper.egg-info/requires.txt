@@ -3,3 +3,7 @@ requests==2.32.3
 ruamel.yaml==0.17.21
 pyyaml==6.0.1
 dotenv==0.9.9
+packaging==24.2
+
+[dev]
+pytest==8.3.5

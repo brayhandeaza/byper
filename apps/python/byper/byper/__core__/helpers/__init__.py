@@ -9,14 +9,13 @@ import yaml
 from pathlib import Path
 from typing import TYPE_CHECKING
 from byper.__core__.constants import REQUIREMENTS_FILE
+from byper.__core__.project_env import find_project_root, get_project_site_packages
 from types import ModuleType
 
 if TYPE_CHECKING:
     from byper.__core__.manifest import Manifest
-    from byper.__core__.environment import Environment
 
 Manifest = getattr(importlib.import_module("byper.__core__.manifest"), "Manifest")
-Environment = getattr(importlib.import_module("byper.__core__.environment"), "Environment")
 
 
 _last_checked = 0
@@ -25,13 +24,15 @@ _aliases_cache = {}
 
 def load_aliases():
     global _last_checked, _aliases_cache
-    if not os.path.exists(REQUIREMENTS_FILE):
+    root = find_project_root()
+    manifest_path = root / REQUIREMENTS_FILE
+    if not manifest_path.is_file():
         return {}
 
-    mtime = os.path.getmtime(REQUIREMENTS_FILE)
+    mtime = manifest_path.stat().st_mtime
     if mtime > _last_checked:
         _last_checked = mtime
-        with open(REQUIREMENTS_FILE, "r") as f:
+        with open(manifest_path, "r") as f:
             config = yaml.safe_load(f) or {}
             _aliases_cache = config.get("aliases", {})
     return _aliases_cache
@@ -45,7 +46,7 @@ def is_vcs_url(package: str) -> bool:
     return bool(re.match(r"^(?:https?|git)://", package))
 
 def generate_aliases_pyi():
-    base_path = Path(os.getcwd()).resolve()
+    base_path = find_project_root()
     aliases = load_aliases()
 
     if not aliases:
@@ -126,19 +127,20 @@ def generate_aliases_pyi():
             lines.append("")
 
     # Write __init__.pyi
-    path = base_path / Environment.get_install_dir() / "byper/aliases/"
-    pyi_path = os.path.join(path, "__init__.pyi")
+    path = get_project_site_packages(base_path) / "byper" / "aliases"
+    pyi_path = path / "__init__.pyi"
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     with open(pyi_path, "w") as f:
         f.write("\n".join(lines))
 
 
 def generate_tasks_stub():
-    path = Path(os.getcwd()).resolve() / Environment.get_install_dir() / "byper/tasks/"
+    base_path = find_project_root()
+    path = get_project_site_packages(base_path) / "byper" / "tasks"
 
-    stub_path = os.path.join(path, "__init__.pyi")
+    stub_path = path / "__init__.pyi"
     manifest = Manifest.load_requirements_manifest()
     tasks = manifest.get("tasks", {})
 
@@ -149,7 +151,7 @@ def generate_tasks_stub():
     ]
 
     content = "\n".join(lines) + "\n"
-    os.makedirs(os.path.dirname(stub_path), exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     try:
         with open(stub_path, "w") as f:
@@ -171,7 +173,7 @@ def load_env_file(file_path: Union[str, Path]) -> Dict[str, str]:
 
 
 def load_env_from_manifest() -> Dict[str, Any]:
-    """Loads env variables from Requirements.yml, supports 'from_file' and inline overrides."""
+    """Loads env variables from requirements.yaml, supports 'from_file' and inline overrides."""
     data: Dict[str, Any] = {}
     manifest = Manifest.load_requirements_manifest()
     env_config = manifest.get("env", {})
@@ -182,8 +184,11 @@ def load_env_from_manifest() -> Dict[str, Any]:
     # 1. Load from `from_file` first
     file_key = env_config.get("from_file")
     if isinstance(file_key, str):
-        file_path = Path(file_key).resolve()
-        if file_path.exists() and file_path.is_file():
+        root = find_project_root()
+        file_path = root / file_key
+        if not file_path.is_file():
+            file_path = Path(file_key).resolve()
+        if file_path.is_file():
             file_data = load_env_file(file_path)
             data.update(file_data)  # Add all .env values
 
@@ -213,11 +218,11 @@ def generate_env_stub():
         else:
             lines.append(f"# Invalid Python identifier: {key}")
 
-    base_path = Path(os.getcwd()).resolve()
-    path = base_path / Environment.get_install_dir() / "byper/env/"
-    pyi_path = os.path.join(path, "__init__.pyi")
+    base_path = find_project_root()
+    path = get_project_site_packages(base_path) / "byper" / "env"
+    pyi_path = path / "__init__.pyi"
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     with open(pyi_path, "w") as f:
         f.write("\n".join(lines))

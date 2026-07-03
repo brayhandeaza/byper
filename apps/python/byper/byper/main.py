@@ -1,11 +1,10 @@
-import importlib
 import sys
-from byper.__core__.constants import VERSION
-from byper.__core__.commands import Commands
-from byper.__core__.environment import Environment
-from byper.__core__.helpers import generate_aliases_pyi, generate_env_stub, generate_tasks_stub
 
-Logger = getattr(importlib.import_module("byper.__core__.utils.logger"), "Logger")
+from byper.__core__.commands import Commands
+from byper.__core__.constants import VERSION
+from byper.__core__.helpers import generate_aliases_pyi, generate_env_stub, generate_tasks_stub
+from byper.__core__.tasks import Tasks
+from byper.__core__.utils.logger import Logger
 
 
 def cli():
@@ -20,10 +19,10 @@ def cli():
         Commands.init(args.name, args.y)
 
     elif args.command == "task":
-        Commands.run_task(args.name)
+        Tasks.run_task(args.name)
 
     elif args.command == "cache":
-        Commands.run_task(args.name)
+        Commands.cache(args.action)
 
     elif args.command == "wheel":
         for pkg in args.packages:
@@ -33,7 +32,7 @@ def cli():
         flags = [
             "--outdated" if args.outdated else "",
             "freeze" if args.freeze else "",
-            "cache" if args.cache else ""
+            "cache" if args.cache else "",
         ]
         Commands.list(flags)
 
@@ -42,6 +41,9 @@ def cli():
         flags = " ".join(args.flags or [])
         for pkg in args.packages:
             Commands.add_package(pkg, download, args.no_cache, args.upgrade, flags)
+
+    elif args.command == "install":
+        Commands.install()
 
     elif args.command == "tree":
         Commands.print_directory_tree()
@@ -85,7 +87,6 @@ def cli():
 
     else:
         if len(sys.argv) > 1:
-            Commands.print_help()
-
+            Commands.print_help(exit_code=1)
         else:
             Commands.install()

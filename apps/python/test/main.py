@@ -1,3 +1,15 @@
-from byper.aliases import say_hello
+from fastapi import FastAPI
 
-print(say_hello("world"))
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+print("Hello, world!")

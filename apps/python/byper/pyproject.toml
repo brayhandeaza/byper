@@ -10,7 +10,18 @@ dependencies = [
     "requests==2.32.3",
     "ruamel.yaml==0.17.21",
     "pyyaml==6.0.1",
-    "dotenv==0.9.9"
+    "dotenv==0.9.9",
+    "packaging==24.2"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.5"
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "network: tests that require network access",
 ]
 
 [project.scripts]

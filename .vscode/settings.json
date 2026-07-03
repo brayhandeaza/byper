@@ -1,11 +1,12 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/apps/python/byper/Packages/bin/python3",
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/python/byper/packages/bin/python3",
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,
     "**/.hg": true,
     "**/.DS_Store": true,
-    "**/Thumbs.db": true
+    "**/Thumbs.db": true,
+    "**/node_modules": true
   },
   "hide-files.files": [],
   "postman.settings.dotenv-detection-notification-visibility": false
