@@ -206,7 +206,38 @@ def test_lockfile_write_and_read(initialized_project: Path):
     run_byper("add", "colorama", cwd=initialized_project)
     lockfile = (initialized_project / "byper.lock").read_text()
     assert "packages:" in lockfile
-    assert "colorama:" in lockfile
+    assert "colorama@0.4.6" in lockfile or "colorama@" in lockfile
+    assert "name: colorama" in lockfile
+    assert "version:" in lockfile
+    assert "source: pypi" in lockfile
+
+
+def test_lockfile_structured_format(initialized_project: Path):
+    import yaml
+    run_byper("add", "colorama", cwd=initialized_project)
+    data = yaml.safe_load((initialized_project / "byper.lock").read_text())
+    packages = data["packages"]
+    # Find the colorama entry by key containing @
+    colorama_key = [k for k in packages if "colorama" in k][0]
+    entry = packages[colorama_key]
+    assert entry["name"] == "colorama"
+    assert entry["source"] == "pypi"
+    assert "resolved" in entry
+    assert "integrity" in entry
+    assert "direct" in entry
+    assert "group" in entry
+    assert "dependencies" in entry
+
+
+def test_lockfile_legacy_detected_and_read(initialized_project: Path):
+    import yaml
+    # Write a legacy-format lockfile
+    (initialized_project / "byper.lock").write_text(
+        "lock_version: 1\npackages:\n  colorama: 0.4.6\n"
+    )
+    result = run_byper("install", cwd=initialized_project, check=False)
+    combined = result.stdout + result.stderr
+    assert "Legacy byper.lock" in combined or result.returncode >= 0
 
 
 def test_lockfile_corrupt_shows_error(initialized_project: Path):

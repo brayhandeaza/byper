@@ -43,3 +43,15 @@ dependencies:
   - `"<3.13"` → máximo
   - `"^3.12"` → compatible release (`>=3.12,<3.13`)
   - `"~3.12.4"` → tilde range (`>=3.12.4,<3.13`)
+
+## Relación con `byper.lock`
+
+```
+requirements.yaml  = intención del proyecto (lo que el usuario declara)
+byper.lock         = resolución exacta generada (metadata por paquete)
+packages/          = environment físico local (venv)
+```
+
+El lockfile usa formato estructurado con keys `"name@version"` e incluye
+`source`, `resolved`, `integrity`, `direct`, `group` y `dependencies`
+para cada paquete. Ver `docs/ESTADO.md` para detalles.

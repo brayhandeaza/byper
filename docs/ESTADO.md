@@ -47,10 +47,13 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 ### Lockfile
 
-- [x] `byper.lock` — lockfile oficial en YAML con clave `packages`
+- [x] `byper.lock` — lockfile en YAML con keys `"name@version"` y metadata estructurada
+- [x] Campos `name`, `version`, `source`, `resolved`, `integrity`, `direct`, `group`, `dependencies`
+- [x] `direct: true` para dependencias de `requirements.yaml`, `false` para transitivas
+- [x] `integrity: "sha256:..."` y `resolved` URL desde PyPI JSON API
+- [x] Detección de lockfile legacy (`{name: version_str}`) con auto-regeneración
 - [x] Instalación desde lockfile si está sincronizado con `requirements.yaml`
-- [x] Detección de lockfile corrupto con mensaje claro
-- [x] Regeneración automática cuando el lockfile está desincronizado
+- [x] Sección `python` con `required`, `resolved`, `implementation`
 
 ### Build y publicación
 
@@ -70,7 +73,7 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 - [x] Reintentos con backoff exponencial al resolver versiones en PyPI
 - [x] Mensajes de error claros para fallos de red vs paquete no encontrado
 - [x] `NetworkError` y `PackageNotFoundError` como excepciones explícitas
-- [ ] SOPORTE OFFLINE CON WHEEL CACHE — ✅ IMPLEMENTADO (parcial)
+- [x] SOPORTE OFFLINE CON WHEEL CACHE — ✅ IMPLEMENTADO
 
 ### Tests
 
@@ -87,7 +90,7 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 - [x] `docs/manifest.md` — formato de `requirements.yaml`
 - [x] `docs/commands.md` — todos los comandos del CLI
-- [x] `docs/aliases-and-tasks.md` — tareas y env
+- [x] `docs/tasks-and-env.md` — tareas y env
 - [x] `docs/development.md` — arquitectura para contribuidores
 - [x] `docs/publishing.md` — build y publish
 - [x] `docs/ESTADO.md` — este documento
@@ -174,6 +177,35 @@ apps/python/byper/
 ### Resolución de paquetes
 
 - `_fetch_pypi_releases()` en `installation.py` — 3 reintentos con backoff exponencial
+
+### Formato del lockfile (`byper.lock`)
+
+```yaml
+lock_version: 1
+
+python:
+  required: ">=3.12,<3.13"
+  resolved: "3.12.8"
+  implementation: "CPython"
+
+packages:
+  "fastapi@0.136.1":
+    name: "fastapi"
+    version: "0.136.1"
+    source: "pypi"
+    resolved: "https://files.pythonhosted.org/.../fastapi-0.136.1-py3-none-any.whl"
+    integrity: "sha256:..."
+    direct: true
+    group: "main"
+    dependencies:
+      pydantic: ">=2.0.0,<3.0.0"
+```
+
+- Keys: `"name@version"` — identifica de forma única cada paquete
+- `direct: true` si viene de `requirements.yaml`, `false` si es transitiva
+- `resolved` e `integrity` se obtienen de PyPI JSON API
+- `dependencies` se obtienen de `importlib.metadata` (los `Requires-Dist`)
+- Legacy detection: si los valores de `packages` son strings planos, se regenera automáticamente
 - `NetworkError` — error de red persistente (timeout, conexión rechazada)
 - `PackageNotFoundError` — PyPI devuelve 404
 - `--offline` → `--no-index` a pip + skip de resolución PyPI
@@ -184,7 +216,9 @@ apps/python/byper/
 
 | Fecha | Cambio |
 |---|---|
-| 2026-07-03 | Removido sistema de aliases (`byper.aliases`) |
+| 2026-07-03 | Removido `byper.aliases` y `byper.awaiter` |
+| 2026-07-03 | Nuevo formato de lockfile: keys `name@version`, metadata por paquete |
+| 2026-07-03 | Lockfile: detección legacy, `direct`/`transitive`, `integrity` sha256 |
 | 2026-07-03 | Rangos de versión de Python con operadores (`>=3.12,<3.13`, `^3.12`, etc.) |
 | 2026-07-03 | Reintentos con backoff y mensajes de error de red |
 | 2026-07-03 | Modo offline (`--offline`) en `install` y `add` |

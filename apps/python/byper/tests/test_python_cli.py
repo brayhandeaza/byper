@@ -104,7 +104,9 @@ class TestPythonVersion:
         )
         run_byper("install", cwd=tmp_path)
         lockfile = yaml.safe_load((tmp_path / "byper.lock").read_text())
-        assert lockfile["packages"]["colorama"] == "0.4.6"
+        packages = lockfile["packages"]
+        colorama_key = [k for k in packages if "colorama" in k][0]
+        assert packages[colorama_key]["version"] == "0.4.6"
 
         # Remove the package and reinstall from lockfile
         result = run_project_pip(["uninstall", "-y", "colorama"], project_root=tmp_path)

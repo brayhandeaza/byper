@@ -369,7 +369,17 @@ class Commands:
                 manifest_python = manifest.get("python")
                 locked_python = LockfileManager.get_lockfile_python()
 
-                lockfile_usable = locked == expected
+                def _normalize(d: dict) -> dict:
+                    return {k.lower().replace("-", "_"): v for k, v in d.items()}
+
+                normalized_locked = _normalize(locked)
+                normalized_expected = _normalize(expected)
+                # Only check that expected deps are present with matching versions.
+                # The lockfile can contain extra transitive deps.
+                lockfile_usable = all(
+                    normalized_locked.get(k) == v
+                    for k, v in normalized_expected.items()
+                )
 
                 if manifest_python and lockfile_usable:
                     if not locked_python:
