@@ -240,6 +240,67 @@ def test_lockfile_legacy_detected_and_read(initialized_project: Path):
     assert "Legacy byper.lock" in combined or result.returncode >= 0
 
 
+def test_lockfile_does_not_include_byper(initialized_project: Path):
+    import yaml
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n"
+    )
+    run_byper("install", cwd=initialized_project)
+    data = yaml.safe_load((initialized_project / "byper.lock").read_text())
+    names = [
+        entry["name"] for entry in data["packages"].values()
+        if isinstance(entry, dict)
+    ]
+    assert "byper" not in names
+
+
+def test_lockfile_only_contains_graph_packages(initialized_project: Path):
+    import yaml
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n"
+        "dependencies:\n  colorama: 0.4.6\n"
+    )
+    run_byper("install", cwd=initialized_project)
+    data = yaml.safe_load((initialized_project / "byper.lock").read_text())
+    names = [
+        entry["name"] for entry in data["packages"].values()
+        if isinstance(entry, dict)
+    ]
+    assert "colorama" in names
+    assert "conda" not in names
+    assert "django" not in names
+    assert "flask" not in names
+    assert "pipenv" not in names
+    assert "kubernetes" not in names
+    assert "onnx" not in names
+
+
+def test_lockfile_direct_vs_transitive(initialized_project: Path):
+    import yaml
+    run_byper("add", "colorama", cwd=initialized_project)
+    data = yaml.safe_load((initialized_project / "byper.lock").read_text())
+    for key, entry in data["packages"].items():
+        if isinstance(entry, dict) and entry["name"] == "colorama":
+            assert entry["direct"] is True
+            return
+    assert False, "colorama not found in lockfile"
+
+
+def test_lockfile_names_normalized(initialized_project: Path):
+    import yaml
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n"
+        "dependencies:\n  colorama: 0.4.6\n"
+    )
+    run_byper("install", cwd=initialized_project)
+    data = yaml.safe_load((initialized_project / "byper.lock").read_text())
+    names = [
+        entry["name"] for entry in data["packages"].values()
+        if isinstance(entry, dict)
+    ]
+    assert len(names) == len(set(names))
+
+
 def test_lockfile_corrupt_shows_error(initialized_project: Path):
     (initialized_project / "byper.lock").write_text("not a mapping")
     result = run_byper("install", cwd=initialized_project, check=False)

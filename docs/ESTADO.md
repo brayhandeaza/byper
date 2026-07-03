@@ -50,6 +50,9 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 - [x] `byper.lock` — lockfile en YAML con keys `"name@version"` y metadata estructurada
 - [x] Campos `name`, `version`, `source`, `resolved`, `integrity`, `direct`, `group`, `dependencies`
 - [x] `direct: true` para dependencias de `requirements.yaml`, `false` para transitivas
+- [x] Generación basada en grafo: solo paquetes alcanzables desde las raíces
+- [x] Usa `packages/bin/python` para leer metadata, nunca el intérprete global
+- [x] `packaging.utils.canonicalize_name` para normalizar nombres
 - [x] `integrity: "sha256:..."` y `resolved` URL desde PyPI JSON API
 - [x] Detección de lockfile legacy (`{name: version_str}`) con auto-regeneración
 - [x] Instalación desde lockfile si está sincronizado con `requirements.yaml`
