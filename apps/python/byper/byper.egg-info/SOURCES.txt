@@ -31,11 +31,6 @@ byper/__core__/constants/__init__.py
 byper/__core__/helpers/__init__.py
 byper/__core__/utils/__init__.py
 byper/__core__/utils/logger.py
-byper/awaiter/__init__.py
-byper/awaiter/__init__.pyi
-byper/awaiter/__module__/__init__.py
-byper/awaiter/__module__/awaiter.py
-byper/awaiter/__module__/type.pyi
 byper/env/__init__.py
 byper/env/__init__.pyi
 byper/env/__module__.py

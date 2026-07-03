@@ -43,7 +43,7 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 - [x] `byper doctor` — diagnóstico incluyendo requisito y versión de Python
 - [x] `byper doctor --fix` — reparar problemas automáticamente (incl. reconstruir env)
 - [x] Lockfile registra `python.required`, `python.resolved`, `python.implementation`
-- [ ] RANGOS DE VERSIÓN DE PYTHON MÁS EXPRESIVOS — ✅ IMPLEMENTADO
+- [x] RANGOS DE VERSIÓN DE PYTHON MÁS EXPRESIVOS
 
 ### Lockfile
 
@@ -119,7 +119,6 @@ apps/python/byper/
 │   │   ├── __init__.pyi           # Auto-generated stubs
 │   │   └── __module__.py          # Lógica de ejecución de tareas
 │   ├── States/                    # Gestión de estado (IPC, backend)
-│   ├── awaiter/                   # Soporte async
 │   └── __core__/                  # Núcleo del sistema
 │       ├── commands.py            # Clase Commands: todos los comandos CLI
 │       ├── constants/             # Nombres de archivos, versión, etc.
