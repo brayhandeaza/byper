@@ -27,6 +27,12 @@ class Manifest:
         tasks = data.pop("tasks", None)
         dependencies = data.pop("dependencies", None)
 
+        if aliases:
+            Logger.log(
+                "Warning: `aliases` is no longer supported by Byper and will be ignored.",
+                level="warn",
+            )
+
         manifest = {
             "name": name,
             "version": version,
@@ -34,7 +40,6 @@ class Manifest:
             "license": license,
 
             "scripts": scripts,
-            "aliases": aliases,
             "tasks": tasks,
             "dependencies": dependencies,
             **data,
@@ -50,19 +55,10 @@ class Manifest:
                 if not value:
                     continue
 
-                if key in ["scripts", "aliases", "tasks", "dependencies"]:
+                if key in ["scripts", "tasks", "dependencies"]:
                     f.write("\n")
 
                 yaml.dump({key: value}, f)
-
-                # if key in ["name", "version", "entry", "license"]:
-                #     yaml.dump({key: value}, f)
-                #     f.write("\n")
-
-                # else:
-                #     yaml.dump({key: value}, f)
-                #     if value:
-                #         f.write("\n")
 
     @staticmethod
     def load_requirements_manifest():
@@ -76,7 +72,6 @@ class Manifest:
                 "author": None,
                 "python": None,
                 "scripts": {},
-                "aliases": {},
                 "tasks": {},
                 "env": {},
                 "dependencies": {},
@@ -85,6 +80,12 @@ class Manifest:
         yaml = YAML()
         with open(REQUIREMENTS_FILE, "r") as f:
             data = yaml.load(f) or {}
+
+        if "aliases" in data:
+            Logger.log(
+                "Warning: `aliases` is no longer supported by Byper and will be ignored.",
+                level="warn",
+            )
 
         return {
             "name": data.get("name"),
@@ -96,7 +97,6 @@ class Manifest:
             "python": data.get("python"),
 
             "scripts": dict(data.get("scripts", {}) or {}),
-            "aliases": dict(data.get("aliases", {}) or {}),
             "tasks": dict(data.get("tasks", {}) or {}),
             "dependencies": dict(data.get("dependencies", {}) or {}),
             "env": dict(data.get("env", {}) or {}),

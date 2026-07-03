@@ -6,7 +6,7 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from byper.__core__.constants import ENVIRONMENT_DIRECTORY, REQUIREMENTS_FILE
 from byper.__core__.utils.logger import Logger
@@ -14,8 +14,11 @@ from byper.__core__.utils.logger import Logger
 
 IS_WINDOWS = platform.system() == "Windows"
 
+if TYPE_CHECKING:
+    from byper.__core__.python_version import Requirement
 
-def get_required_python() -> tuple[int, ...] | None:
+
+def get_required_python() -> Optional["Requirement"]:
     """Return the Python version required by the current project, if any."""
     from byper.__core__.manifest import Manifest
     from byper.__core__.python_version import parse_version_string
@@ -113,8 +116,8 @@ def validate_project_environment(project_root: Optional[Path | str] = None) -> N
     message = (
         f"The local environment was created with Python {format_version(installed_version)},\n"
         f"but this project requires Python {describe_requirement(required)}.\n\n"
-        "Delete packages/ and run:\n"
-        "  byper install"
+        "Run:\n"
+        "  byper reset"
     )
     Logger.log(f"❌ {message}", level="error")
     sys.exit(1)
@@ -254,7 +257,7 @@ def ensure_project_environment(project_root: Optional[Path | str] = None) -> Pat
     subprocess.check_call(executable + ["-m", "venv", str(packages)])
     Logger.log("✅ Environment creado", level="success")
 
-    # Install byper into the project environment so aliases/env work in project subprocesses.
+    # Install byper into the project environment so env/tasks work in project subprocesses.
     Logger.log("📦 Instalando byper en el environment local", level="install")
     _install_byper_into_project(packages.parent)
     Logger.log("✅ byper instalado en el environment local", level="success")

@@ -1,12 +1,15 @@
+import re
 import shutil
 import subprocess
 import sys
 
 IS_WINDOWS = sys.platform == "win32"
 
+Requirement = list[tuple[str, tuple[int, ...]]]
 
-def parse_version_string(version_str: str) -> tuple[int, ...]:
-    """Parse a simple Python version string such as '3.12' or '3.12.4'."""
+
+def _parse_version_parts(version_str: str) -> tuple[int, ...]:
+    """Parse a simple version string like '3.12' or '3.12.4' into a tuple."""
     if not version_str:
         raise ValueError("Empty Python version string")
 
@@ -25,16 +28,90 @@ def parse_version_string(version_str: str) -> tuple[int, ...]:
     return ints
 
 
+def _compare_versions(a: tuple[int, ...], b: tuple[int, ...]) -> int:
+    """Compare two version tuples. Returns -1, 0, or 1."""
+    max_len = max(len(a), len(b))
+    a_padded = a + (0,) * (max_len - len(a))
+    b_padded = b + (0,) * (max_len - len(b))
+    if a_padded < b_padded:
+        return -1
+    elif a_padded > b_padded:
+        return 1
+    return 0
+
+
+def parse_version_string(version_str: str) -> Requirement:
+    """Parse a Python version requirement string.
+
+    Supports both simple and constraint-based formats:
+
+        ``"3.12"``        → ``>=3.12,<3.13``  (any 3.12.x)
+        ``"3.12.4"``      → ``==3.12.4``       (exact)
+        ``">=3.12,<3.13"``→ both constraints
+        ``">=3.12"``      → minimum version
+        ``"<3.13"``       → maximum version
+        ``"^3.12"``       → ``>=3.12,<3.13``  (compatible release)
+        ``"~3.12.4"``     → ``>=3.12.4,<3.13`` (tilde range)
+    """
+    version_str = str(version_str).strip()
+    if not version_str:
+        raise ValueError("Empty Python version string")
+
+    # Caret range: ^3.12 → >=3.12,<3.13
+    if version_str.startswith("^"):
+        ver = _parse_version_parts(version_str[1:])
+        if len(ver) == 1:
+            return [(">=", ver), ("<", (ver[0] + 1,))]
+        elif len(ver) == 2:
+            return [(">=", ver), ("<", (ver[0], ver[1] + 1))]
+        else:
+            return [(">=", ver), ("<", (ver[0], ver[1] + 1))]
+
+    # Tilde range: ~3.12.4 → >=3.12.4,<3.13
+    if version_str.startswith("~"):
+        ver = _parse_version_parts(version_str[1:])
+        return [(">=", ver), ("<", (ver[0], ver[1] + 1))]
+
+    # Constraint-based format: >=3.12,<3.13 or >=3.12
+    if any(op in version_str for op in (">=", "<=", "!=", "==", ">", "<")):
+        constraints: Requirement = []
+        parts = [p.strip() for p in version_str.split(",") if p.strip()]
+
+        for part in parts:
+            match = re.match(r"(>=|<=|!=|==|>|<)\s*(.*)", part)
+            if not match:
+                raise ValueError(f"Invalid version constraint: {part!r}")
+            op = match.group(1)
+            ver_str = match.group(2).strip()
+            if not ver_str:
+                raise ValueError(f"Invalid version constraint: {part!r}")
+            ver = _parse_version_parts(ver_str)
+            constraints.append((op, ver))
+
+        if not constraints:
+            raise ValueError(f"Invalid version requirement: {version_str!r}")
+        return constraints
+
+    # Simple format: "3.12" or "3.12.4"
+    ver = _parse_version_parts(version_str)
+
+    if len(ver) >= 3:
+        return [("==", ver)]
+    return [(">=", ver), ("<", (ver[0], ver[1] + 1))]
+
+
 def format_version(version_info: tuple[int, ...]) -> str:
     """Format a version tuple as 'major.minor.patch'."""
     return ".".join(str(part) for part in version_info)
 
 
-def describe_requirement(required: tuple[int, ...]) -> str:
+def describe_requirement(requirement: Requirement) -> str:
     """Return a human-readable description of a Python requirement."""
-    if len(required) >= 3:
-        return format_version(required)
-    return f"{required[0]}.{required[1]}.x" if len(required) == 2 else format_version(required)
+    if len(requirement) == 1:
+        op, ver = requirement[0]
+        return f"{op}{format_version(ver)}"
+    parts = [f"{op}{format_version(ver)}" for op, ver in requirement]
+    return ", ".join(parts)
 
 
 def get_python_version_info(executable: list[str]) -> tuple[tuple[int, int, int], str] | None:
@@ -79,15 +156,26 @@ def get_python_version_info(executable: list[str]) -> tuple[tuple[int, int, int]
     return version, lines[1]
 
 
-def is_compatible(installed: tuple[int, int, int], required: tuple[int, ...]) -> bool:
-    """Check whether an installed Python satisfies a simple requirement.
+def is_compatible(installed: tuple[int, int, int], requirement: Requirement) -> bool:
+    """Check whether an installed Python satisfies all constraints.
 
-    * ``3.12`` matches any ``3.12.x``.
-    * ``3.12.4`` matches exactly ``3.12.4``.
+    Constraints may include: ``>=``, ``>``, ``<=``, ``<``, ``==``, ``!=``.
     """
-    if len(required) >= 3:
-        return installed[:3] == required[:3]
-    return installed[: len(required)] == required[: len(required)]
+    for op, ver in requirement:
+        cmp = _compare_versions(installed, ver)
+        if op == ">=" and cmp < 0:
+            return False
+        if op == ">" and cmp <= 0:
+            return False
+        if op == "<=" and cmp > 0:
+            return False
+        if op == "<" and cmp >= 0:
+            return False
+        if op == "==" and cmp != 0:
+            return False
+        if op == "!=" and cmp == 0:
+            return False
+    return True
 
 
 def _candidate_commands() -> list[list[str]]:
@@ -138,10 +226,14 @@ def list_installed_pythons() -> list[tuple[list[str], tuple[int, int, int], str]
     return found
 
 
-def format_no_compatible_python(required: tuple[int, ...], found: list[tuple[list[str], tuple[int, int, int], str]]) -> str:
+def format_no_compatible_python(
+    requirement: Requirement,
+    found: list[tuple[list[str], tuple[int, int, int], str]],
+) -> str:
     """Format the error shown when no compatible Python is found."""
     lines = [
-        f"This project requires Python {describe_requirement(required)}, but no compatible Python was found.",
+        f"This project requires Python {describe_requirement(requirement)}, "
+        "but no compatible Python was found.",
         "",
         "Found:",
     ]
@@ -155,7 +247,7 @@ def format_no_compatible_python(required: tuple[int, ...], found: list[tuple[lis
 
     lines.extend([
         "",
-        f"Install Python {describe_requirement(required)} and run:",
+        f"Install a compatible Python and run:",
         "  byper install",
     ])
 
@@ -165,20 +257,26 @@ def format_no_compatible_python(required: tuple[int, ...], found: list[tuple[lis
 class PythonNotFoundError(Exception):
     """Raised when no compatible Python interpreter is available."""
 
-    def __init__(self, required: tuple[int, ...], found: list[tuple[list[str], tuple[int, int, int], str]]):
-        self.required = required
+    def __init__(
+        self,
+        requirement: Requirement,
+        found: list[tuple[list[str], tuple[int, int, int], str]],
+    ):
+        self.requirement = requirement
         self.found = found
-        super().__init__(format_no_compatible_python(required, found))
+        super().__init__(format_no_compatible_python(requirement, found))
 
 
-def find_compatible_python(required: tuple[int, ...]) -> tuple[list[str], tuple[int, int, int], str]:
-    """Find a Python executable that satisfies the given requirement.
+def find_compatible_python(
+    requirement: Requirement,
+) -> tuple[list[str], tuple[int, int, int], str]:
+    """Find a Python executable that satisfies all constraints.
 
     Returns a tuple of (executable_args, version_info, implementation).
     Raises ``PythonNotFoundError`` if no compatible interpreter is found.
     """
     for cmd, version_info, impl in list_installed_pythons():
-        if is_compatible(version_info, required):
+        if is_compatible(version_info, requirement):
             return cmd, version_info, impl
 
-    raise PythonNotFoundError(required, list_installed_pythons())
+    raise PythonNotFoundError(requirement, list_installed_pythons())

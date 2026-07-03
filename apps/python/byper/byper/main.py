@@ -2,7 +2,7 @@ import sys
 
 from byper.__core__.commands import Commands
 from byper.__core__.constants import VERSION
-from byper.__core__.helpers import generate_aliases_pyi, generate_env_stub, generate_tasks_stub
+from byper.__core__.helpers import generate_env_stub, generate_tasks_stub
 from byper.__core__.tasks import Tasks
 from byper.__core__.utils.logger import Logger
 
@@ -76,14 +76,25 @@ def cli():
 
     elif args.command == "refresh":
         generate_tasks_stub()
-        generate_aliases_pyi()
         generate_env_stub()
 
     elif args.command == "doctor":
-        Commands.doctor()
+        if args.fix:
+            Commands.doctor_fix(args.yes)
+        else:
+            Commands.doctor()
 
     elif args.command == "build":
         Commands.build()
+
+    elif args.command == "path":
+        Commands.path()
+
+    elif args.command == "python":
+        Commands.python_info()
+
+    elif args.command == "reset":
+        Commands.reset(args.yes)
 
     else:
         if len(sys.argv) > 1:

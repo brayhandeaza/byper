@@ -1,24 +1,4 @@
-# Aliases, tareas y variables de entorno
-
-## Aliases
-
-Permiten importar objetos del proyecto como si fueran un módulo `byper`:
-
-```yaml
-aliases:
-  utils: src.utils
-  greet: src.greetings.say_hello
-```
-
-```python
-from byper.aliases import utils, greet
-```
-
-Después de editar aliases, corre:
-
-```bash
-byper refresh
-```
+# Tareas y variables de entorno
 
 ## Tareas
 

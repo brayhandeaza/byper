@@ -27,8 +27,8 @@ Hay dos environments distintos:
 
 2. **Environment local del proyecto (`packages/`)**
    - Byper lo crea automáticamente en la raíz del proyecto.
-   - Aquí se instalan las dependencias del proyecto.
-   - Aquí también se instala Byper mismo en modo editable, para que los imports `from byper.aliases import ...` y `from byper.env import ...` funcionen dentro del proyecto.
+- Aquí se instalan las dependencias del proyecto.
+- Aquí también se instala Byper mismo en modo editable, para que los imports `from byper.env import ...` y `from byper.tasks import ...` funcionen dentro del proyecto.
 
 Regla arquitectónica principal:
 
@@ -50,7 +50,7 @@ Helpers en `byper/__core__/project_env.py`:
 Cuando se ejecuta `byper init` o cualquier comando que necesite el environment, Byper:
 
 1. Crea un venv con `python -m venv packages/`.
-2. Instala Byper en modo editable dentro de ese venv para que los imports de aliases/env funcionen.
+2. Instala Byper en modo editable dentro de ese venv para que los imports de env/tasks funcionen.
 
 ## Ejecución de Python dentro del project environment
 
@@ -79,9 +79,6 @@ license: MIT
 scripts:
   start: python main.py
 
-aliases:
-  utils: src.utils
-
 tasks:
   deploy:
     - byper run test
@@ -96,7 +93,7 @@ dependencies:
   requests: 2.32.5
 ```
 
-Campos soportados: `name`, `version`, `description`, `entry`, `author`, `license`, `scripts`, `aliases`, `tasks`, `env`, `dependencies`.
+Campos soportados: `name`, `version`, `description`, `entry`, `author`, `license`, `scripts`, `tasks`, `env`, `dependencies`.
 
 ## Formato del lockfile
 
@@ -139,16 +136,6 @@ Soporta varios tipos de pasos:
 - `byper run <script>`.
 - `{ file: "ruta.py" }` → ejecuta con `run_project_python`.
 - `{ call: "modulo.funcion", args: [...], kwargs: {...} }` → ejecuta la función dentro del Python del proyecto.
-
-## Aliases
-
-Los aliases permiten importar objetos del proyecto como si fueran parte del módulo `byper`:
-
-```python
-from byper.aliases import utils
-```
-
-Se configuran en `requirements.yaml` y se refrescan con `byper refresh`.
 
 ## Env
 

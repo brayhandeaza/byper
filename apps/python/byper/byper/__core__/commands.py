@@ -18,6 +18,7 @@ from byper.__core__.lockfile import LockfileManager
 from byper.__core__.project_env import (
     ensure_project_environment,
     find_project_root,
+    get_packages_dir,
     get_project_python,
     get_project_python_version_info,
     get_required_python,
@@ -50,6 +51,23 @@ def _has_module(module: str) -> bool:
         text=True,
     )
     return result.returncode == 0
+
+
+def _safely_remove_packages_dir(packages: Path) -> None:
+    """Remove packages/ with safety validation."""
+    resolved = packages.resolve()
+    project_root = find_project_root().resolve()
+
+    if resolved.parent != project_root:
+        Logger.log(f"❌ Safety check: {resolved} is not inside project root {project_root}", level="error")
+        sys.exit(1)
+
+    if resolved.name != ENVIRONMENT_DIRECTORY:
+        Logger.log(f"❌ Safety check: expected directory name '{ENVIRONMENT_DIRECTORY}', got '{resolved.name}'", level="error")
+        sys.exit(1)
+
+    shutil.rmtree(resolved)
+    Logger.log("✅ packages/ removed.", level="success")
 
 
 class Commands:
@@ -96,8 +114,8 @@ class Commands:
                 Logger.log(
                     f"The local environment was created with Python {format_version(installed_version)},\n"
                     f"but this project requires Python {describe_requirement(required)}.\n\n"
-                    "Delete packages/ and run:\n"
-                    "  byper install",
+                    "Run:\n"
+                    "  byper reset",
                     indent=1,
                     level="error",
                 )
@@ -175,7 +193,6 @@ class Commands:
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
         subparsers.add_parser("publish", help="Publish package to PyPI")
-        subparsers.add_parser("doctor", help="Run dependencies diagnostics")
         subparsers.add_parser("refresh", help="Refresh environment packages")
         subparsers.add_parser("build", help="Build distribution packages")
 
@@ -208,6 +225,16 @@ class Commands:
         remove_parser = subparsers.add_parser("remove", help="Remove package from dependencies")
         remove_parser.add_argument("packages", nargs="+")
         remove_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
+
+        subparsers.add_parser("path", help="Show project paths")
+        subparsers.add_parser("python", help="Show project Python info")
+
+        reset_parser = subparsers.add_parser("reset", help="Rebuild packages/")
+        reset_parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
+
+        doctor_parser = subparsers.add_parser("doctor", help="Run dependencies diagnostics")
+        doctor_parser.add_argument("--fix", action="store_true", help="Attempt to fix issues automatically")
+        doctor_parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompts")
 
         return parser
 
@@ -252,11 +279,14 @@ class Commands:
         Logger.log("byper tree                            Print directory tree", indent=2, level="command")
         Logger.log("byper list                            List installed packages", indent=2, level="command")
         Logger.log("byper cache <list|clear|dir>          Manage pip cache", indent=2, level="command")
-        Logger.log("byper doctor                          Run dependencies diagnostics", indent=2, level="command")
+        Logger.log("byper doctor [--fix] [--yes]          Run dependencies diagnostics", indent=2, level="command")
         Logger.log("byper refresh                         Refresh environment packages", indent=2, level="command")
         Logger.log("byper publish                         Publish package to PyPI", indent=2, level="command")
         Logger.log("byper login                           PyPI login", indent=2, level="command")
         Logger.log("byper logout                          PyPI logout", indent=2, level="command")
+        Logger.log("byper path                            Show project paths", indent=2, level="command")
+        Logger.log("byper python                          Show project Python info", indent=2, level="command")
+        Logger.log("byper reset [-y]                      Rebuild packages/", indent=2, level="command")
         Logger.log("byper                                 Run Byper itself to install dependencies from requirements.yaml", indent=2, level="command")
 
         Logger.log("\nFlags:",                            level="info")
@@ -644,12 +674,155 @@ class Commands:
                 Logger.log(e.stdout, level="error")
 
     @staticmethod
-    def refresh():
-        from byper.aliases.__module__ import AliasModule
+    def path():
+        project_root = find_project_root()
+        packages = get_packages_dir(project_root)
+        lockfile_path = get_lockfile_path(project_root)
+        project_python = get_project_python(project_root)
+
+        Logger.log(f"Project root: {project_root}")
+        Logger.log(f"Packages: {packages}")
+        Logger.log(f"Python: {project_python}")
+        Logger.log(f"Lockfile: {lockfile_path}")
+
+    @staticmethod
+    def python_info():
+        project_root = find_project_root()
+        manifest = Manifest.load_requirements_manifest()
+        raw_python = manifest.get("python")
+        required = get_required_python()
+
+        if raw_python is None:
+            Logger.log("Requirement: not set")
+        else:
+            Logger.log(f"Requirement: {raw_python}")
+
+        project_python = get_project_python(project_root)
+        project_info = get_project_python_version_info(project_root)
+        if project_info is None:
+            Logger.log("Resolved: not found")
+            Logger.log("Implementation: N/A")
+            Logger.log(f"Path: {project_python}")
+            Logger.log("Status: no environment")
+        else:
+            installed_version, impl = project_info
+            Logger.log(f"Resolved: {format_version(installed_version)}")
+            Logger.log(f"Implementation: {impl}")
+            Logger.log(f"Path: {project_python}")
+
+            if required is None or is_compatible(installed_version, required):
+                Logger.log("Status: OK")
+            else:
+                Logger.log("Status: ERROR")
+                Logger.log(
+                    f"The local environment was created with Python {format_version(installed_version)},\n"
+                    f"but this project requires Python {describe_requirement(required)}.\n\n"
+                    "Run:\n"
+                    "  byper reset",
+                    level="error",
+                )
+
+    @staticmethod
+    def _confirm_action(prompt: str, yes: bool = False) -> bool:
+        if yes:
+            return True
+        try:
+            answer = input(f"{prompt} [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return False
+        return answer in ("y", "yes")
+
+    @staticmethod
+    def reset(yes: bool = False):
+        project_root = find_project_root()
+        packages = get_packages_dir(project_root)
+
+        if not packages.exists():
+            Logger.log("📦 No packages/ environment to reset. Creating one...")
+            ensure_project_environment()
+            Commands.install()
+            return
+
+        if not Commands._confirm_action("This will remove and rebuild packages/.\nContinue?", yes=yes):
+            Logger.log("Canceled.", level="warn")
+            return
+
+        _safely_remove_packages_dir(packages)
+
+        Logger.log("🔄 Rebuilding environment...")
+        ensure_project_environment()
+        Commands._refresh_stubs()
+        Commands.install()
+
+    @staticmethod
+    def doctor_fix(yes: bool = False):
+        project_root = find_project_root()
+        packages = get_packages_dir(project_root)
+        fixed_anything = False
+
+        # 1. Check for environment version mismatch (requires full reset).
+        required = get_required_python()
+        if packages.exists() and required is not None:
+            project_info = get_project_python_version_info(project_root)
+            if project_info is not None:
+                installed_version, _impl = project_info
+                if not is_compatible(installed_version, required):
+                    Logger.log(
+                        f"⚠️ Environment Python {format_version(installed_version)} "
+                        f"does not meet requirement {describe_requirement(required)}.",
+                        level="warn",
+                    )
+                    if Commands._confirm_action(
+                        "Fixing this requires removing and rebuilding packages/.\nContinue?", yes=yes
+                    ):
+                        _safely_remove_packages_dir(packages)
+                        ensure_project_environment()
+                        Commands._refresh_stubs()
+                        Commands.install()
+                        fixed_anything = True
+                    else:
+                        Logger.log("Run:\n  byper reset", level="command")
+                    return
+
+        # 2. Create packages/ if missing.
+        if not packages.exists():
+            Logger.log("📦 Creating missing packages/ environment...", level="install")
+            ensure_project_environment()
+            fixed_anything = True
+
+        # 3. Regenerate lockfile if missing.
+        lockfile_path = get_lockfile_path(project_root)
+        if not lockfile_path.exists():
+            Logger.log("📦 Regenerating byper.lock...", level="install")
+            Commands.install()
+            fixed_anything = True
+        else:
+            # Install dependencies.
+            Commands.install()
+
+        # 4. Refresh stubs.
+        Commands._refresh_stubs()
+
+        if fixed_anything:
+            Logger.log("✅ Issues fixed.", level="success")
+        else:
+            Logger.log("✅ No issues found.", level="success")
+
+    @staticmethod
+    def _refresh_stubs():
+        from byper.__core__.helpers import generate_env_stub, generate_tasks_stub
 
         try:
-            Logger.log("🔄 Refreshing byper aliases...")
-            AliasModule()
-            Logger.log("✅ Aliases refreshed!", level="success")
+            generate_tasks_stub()
+            generate_env_stub()
+        except Exception:
+            pass
+
+    @staticmethod
+    def refresh():
+        try:
+            Logger.log("🔄 Refreshing Byper stubs...")
+            Commands._refresh_stubs()
+            Logger.log("✅ Stubs refreshed!", level="success")
         except Exception as e:
-            Logger.log(f"❌ Failed to refresh aliases: {e}", level="error")
+            Logger.log(f"❌ Failed to refresh stubs: {e}", level="error")

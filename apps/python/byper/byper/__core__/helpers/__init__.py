@@ -5,7 +5,6 @@ import importlib
 import inspect
 import os
 from dotenv import dotenv_values, load_dotenv
-import yaml
 from pathlib import Path
 from typing import TYPE_CHECKING
 from byper.__core__.constants import REQUIREMENTS_FILE
@@ -18,123 +17,12 @@ if TYPE_CHECKING:
 Manifest = getattr(importlib.import_module("byper.__core__.manifest"), "Manifest")
 
 
-_last_checked = 0
-_aliases_cache = {}
-
-
-def load_aliases():
-    global _last_checked, _aliases_cache
-    root = find_project_root()
-    manifest_path = root / REQUIREMENTS_FILE
-    if not manifest_path.is_file():
-        return {}
-
-    mtime = manifest_path.stat().st_mtime
-    if mtime > _last_checked:
-        _last_checked = mtime
-        with open(manifest_path, "r") as f:
-            config = yaml.safe_load(f) or {}
-            _aliases_cache = config.get("aliases", {})
-    return _aliases_cache
-
-
 def is_vcs_url(package: str) -> bool:
     vcs_prefixes = ("git+", "hg+", "svn+", "bzr+")
     if package.startswith(vcs_prefixes):
         return True
     # also treat plain git/http URLs as VCS-like
     return bool(re.match(r"^(?:https?|git)://", package))
-
-def generate_aliases_pyi():
-    base_path = find_project_root()
-    aliases = load_aliases()
-
-    if not aliases:
-        return
-
-    lines = [
-        "# Auto-generated alias stubs by Byper for IDE support",
-        "from types import ModuleType",
-        "from typing import Any, Callable",
-        "",
-    ]
-
-    # add base_path route to sys.path
-    sys.path.insert(0, str(base_path))
-    for alias, target_path in aliases.items():
-        try:
-            parts = target_path.split(".")
-            if len(parts) == 1:
-                obj = importlib.import_module(target_path)
-            else:
-                mod = importlib.import_module(".".join(parts[:-1]))
-                obj = getattr(mod, parts[-1])
-
-            # Class stub
-            if inspect.isclass(obj):
-                lines.append(f"class {alias}(ModuleType):")
-                for name, member in inspect.getmembers(obj):
-                    if name.startswith("_"):
-                        continue
-                    if inspect.isfunction(member) or inspect.ismethod(member):
-                        try:
-                            sig = inspect.signature(member)
-                            lines.append(f"    def {name}{sig} -> Any: ...")
-                        except Exception:
-                            lines.append(f"    def {name}(*args, **kwargs) -> Any: ...")
-                    elif isinstance(member, property):
-                        lines.append(f"    @property")
-                        lines.append(f"    def {name}(self) -> Any: ...")
-                    else:
-                        lines.append(f"    {name}: Any")
-                lines.append("")
-
-            # Function stub
-            elif inspect.isfunction(obj):
-                try:
-                    sig = inspect.signature(obj)
-                    lines.append(f"def {alias}{sig} -> Any: ...")
-                except Exception:
-                    lines.append(f"def {alias}(*args, **kwargs) -> Any: ...")
-                lines.append("")
-
-            # Module stub
-            elif isinstance(obj, ModuleType):
-                lines.append(f"class {alias}(ModuleType):")
-                for name, member in inspect.getmembers(obj):
-                    if name.startswith("_"):
-                        continue
-                    if inspect.isfunction(member):
-                        try:
-                            sig = inspect.signature(member)
-                            lines.append(f"    def {name}{sig} -> Any: ...")
-                        except Exception:
-                            lines.append(f"    def {name}(*args, **kwargs) -> Any: ...")
-                    elif inspect.isclass(member):
-                        lines.append(f"    class {name}: ...")
-                    else:
-                        lines.append(f"    {name}: Any")
-                lines.append("")
-
-            # Variable/constant stub
-            else:
-                lines.append(f"{alias}: Any")
-                lines.append("")
-
-        except Exception as e:
-            lines.append(f"# Failed to generate stub for alias {alias}: {e}")
-            lines.append(f"{alias}: Any")
-            lines.append("")
-
-    # Write __init__.pyi
-    path = get_project_site_packages(base_path) / "byper" / "aliases"
-    pyi_path = path / "__init__.pyi"
-
-    path.mkdir(parents=True, exist_ok=True)
-
-    with open(pyi_path, "w") as f:
-        f.write("\n".join(lines))
-
 
 def generate_tasks_stub():
     base_path = find_project_root()

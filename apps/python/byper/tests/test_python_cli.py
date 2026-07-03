@@ -50,7 +50,7 @@ class TestPythonVersion:
         result = run_byper("install", cwd=tmp_path, check=False)
         combined = result.stdout + result.stderr
         assert result.returncode != 0
-        assert "99.99.x" in combined
+        assert "99.99" in combined
 
     def test_doctor_reports_python_requirement_and_project_python(self, tmp_path: Path):
         (tmp_path / "requirements.yaml").write_text(

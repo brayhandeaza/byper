@@ -10,7 +10,7 @@
 | `byper run <script>` | Ejecuta un script del manifesto |
 | `byper task <nombre>` | Ejecuta una tarea del manifesto |
 | `byper <archivo.py>` | Ejecuta un archivo Python con el entorno `packages/` |
-| `byper refresh` | Regenera stubs `.pyi` de aliases/tareas/env |
+| `byper refresh` | Regenera stubs `.pyi` de tareas/env |
 | `byper build` | Compila el paquete con `python -m build` (usa `packages/bin/python`) |
 | `byper publish` | Sube a PyPI usando twine y `~/.pypirc` |
 | `byper login` | Guarda token de PyPI en `~/.pypirc` |

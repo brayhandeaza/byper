@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -140,7 +141,7 @@ class TestTasks:
         assert "Hello Byper from" in result.stdout
 
 
-class TestAliasesAndEnv:
+class TestEnv:
     def test_env_import(self, initialized_project: Path):
         (initialized_project / "requirements.yaml").write_text(
             "name: envtest\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\nenv:\n  DEBUG: \"true\"\n"
@@ -157,23 +158,44 @@ class TestAliasesAndEnv:
         assert result.returncode == 0
         assert "DEBUG= true" in result.stdout
 
-    def test_alias_import(self, initialized_project: Path):
-        (initialized_project / "tasks.py").write_text(
-            "def greet(name):\n"
-            "    print(f'Hello {name}')\n"
-        )
-        (initialized_project / "requirements.yaml").write_text(
-            "name: aliastest\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\naliases:\n  greeter: tasks.greet\n"
-        )
-        run_byper("refresh", cwd=initialized_project)
-        result = subprocess.run(
-            [sys.executable, "-c", "from byper.aliases import greeter; greeter('alias')"],
-            cwd=initialized_project,
-            capture_output=True,
-            text=True,
-        )
-        assert result.returncode == 0
-        assert "Hello alias" in result.stdout
+
+def test_aliases_no_longer_generates_module(initialized_project: Path):
+    (initialized_project / "tasks.py").write_text(
+        "def greet(name):\n"
+        "    print(f'Hello {name}')\n"
+    )
+    (initialized_project / "requirements.yaml").write_text(
+        "name: aliastest\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\naliases:\n  greeter: tasks.greet\n"
+    )
+    result = run_byper("refresh", cwd=initialized_project)
+    assert result.returncode == 0
+
+    try:
+        import byper.aliases
+        assert False, "byper.aliases should no longer exist"
+    except ImportError:
+        pass
+
+    result = run_byper("install", cwd=initialized_project)
+    assert result.returncode == 0
+
+
+def test_refresh_does_not_generate_aliases(initialized_project: Path):
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\naliases:\n  foo: bar\n"
+    )
+    result = run_byper("refresh", cwd=initialized_project)
+    assert result.returncode == 0
+    assert "Aliases refreshed" not in result.stdout
+    assert "Refreshing byper aliases" not in result.stdout
+
+
+def test_aliases_warning_in_manifest(initialized_project: Path):
+    (initialized_project / "requirements.yaml").write_text(
+        "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\naliases:\n  utils: src.utils\n"
+    )
+    result = run_byper("install", cwd=initialized_project)
+    assert "`aliases` is no longer supported" in result.stdout
 
 
 # ---------------------------------------------------------------------------
@@ -258,3 +280,92 @@ def test_invalid_requirements_yaml(initialized_project: Path):
 def test_unknown_command(empty_project: Path):
     result = run_byper("not-a-command", cwd=empty_project, check=False)
     assert result.returncode != 0
+
+
+# ---------------------------------------------------------------------------
+# byper path / python / reset / doctor --fix
+# ---------------------------------------------------------------------------
+
+class TestPathAndPython:
+    def test_path_shows_project_routes(self, initialized_project: Path):
+        result = run_byper("path", cwd=initialized_project)
+        assert result.returncode == 0
+        assert "Project root:" in result.stdout
+        assert "Packages:" in result.stdout
+        assert "Python:" in result.stdout
+        assert "Lockfile:" in result.stdout
+
+    def test_python_shows_info(self, initialized_project: Path):
+        result = run_byper("python", cwd=initialized_project)
+        assert result.returncode == 0
+        assert "Status:" in result.stdout
+
+
+class TestReset:
+    def test_reset_with_yes_flag(self, initialized_project: Path):
+        packages = initialized_project / "packages"
+        assert packages.is_dir()
+        result = run_byper("reset", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+        assert packages.is_dir()
+
+    def test_reset_cancels_on_no(self, initialized_project: Path):
+        packages = initialized_project / "packages"
+        assert packages.is_dir()
+        # Simulate typing "no"
+        result = run_byper("reset", cwd=initialized_project, check=False, input="n\n")
+        assert packages.is_dir()
+
+    def test_reset_recreates_packages(self, initialized_project: Path):
+        packages = initialized_project / "packages"
+        (packages / "bin" / "python").unlink(missing_ok=True)
+        (packages / "bin" / "pip").unlink(missing_ok=True)
+        result = run_byper("reset", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+        assert (packages / "bin" / "python").exists()
+
+    def test_reset_installs_from_lockfile(self, initialized_project: Path):
+        result = run_byper("reset", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+
+    def test_reset_updates_lockfile(self, initialized_project: Path):
+        lock = initialized_project / "byper.lock"
+        if lock.exists():
+            lock.unlink()
+        result = run_byper("reset", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+        assert lock.exists()
+
+
+class TestDoctorFix:
+    def test_doctor_fix_no_issues(self, initialized_project: Path):
+        result = run_byper("doctor", "--fix", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+
+    def test_doctor_fix_creates_packages(self, initialized_project: Path):
+        packages = initialized_project / "packages"
+        shutil.rmtree(packages, ignore_errors=True)
+        assert not packages.exists()
+        result = run_byper("doctor", "--fix", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+        assert packages.exists()
+
+    def test_doctor_fix_regenerates_lockfile(self, initialized_project: Path):
+        lock = initialized_project / "byper.lock"
+        lock.unlink(missing_ok=True)
+        result = run_byper("doctor", "--fix", "-y", cwd=initialized_project)
+        assert result.returncode == 0
+        assert lock.exists()
+
+
+class TestErrorMessage:
+    def test_incompatible_version_suggests_reset(self, tmp_path: Path):
+        (tmp_path / "requirements.yaml").write_text("name: test\nversion: 0.0.1\n")
+        run_byper("install", cwd=tmp_path)
+        (tmp_path / "requirements.yaml").write_text(
+            'name: test\nversion: 0.0.1\npython: "99.99"\n'
+        )
+        result = run_byper("install", cwd=tmp_path, check=False)
+        combined = result.stdout + result.stderr
+        assert "byper reset" in combined
+
