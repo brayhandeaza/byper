@@ -34,12 +34,15 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 - [x] `byper refresh` — regenerar stubs `.pyi` de tasks/env
 
 ### Versión de Python
-
 - [x] Campo `python` en `requirements.yaml` con formato simple: `"3.12"`, `"3.12.4"`
 - [x] Operadores de comparación: `>=3.12,<3.13`, `>=3.12`, `<3.13`, etc.
 - [x] Caret (`^3.12`) y tilde (`~3.12.4`)
 - [x] Validación de compatibilidad del environment existente
 - [x] `byper python` — mostrar info de versión del proyecto
+- [x] `byper python install <version>` — descargar e instalar Python runtime desde python-build-standalone
+- [x] `byper python use <version>` — configurar `python: "<version>"` en `requirements.yaml`
+- [x] `byper python list` — listar runtimes instalados por byper en `~/.byper/pythons/`
+- [x] Descarga automática de Python al ejecutar `byper install` si no hay intérprete compatible (pregunta interactiva)
 - [x] `byper doctor` — diagnóstico incluyendo requisito y versión de Python
 - [x] `byper doctor --fix` — reparar problemas automáticamente (incl. reconstruir env)
 - [x] Lockfile registra `python.required`, `python.resolved`, `python.implementation`
@@ -69,6 +72,8 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 - [x] `byper cache <list|clear|dir>` — administrar caché de pip
 - [x] `byper wheel <pkg>` — construir wheel para un paquete
+- [x] `PIP_DISABLE_PIP_VERSION_CHECK=1` en todas las llamadas internas a pip
+- [x] `--disable-pip-version-check` flag explícito en `run_project_pip()`
 
 ### Red y resiliencia
 
@@ -102,9 +107,10 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 ## Pendiente / mejoras futuras
 
-- [ ] Descarga/instalación automática de Python cuando no se encuentre un intérprete compatible
-- [ ] Tests de rendimiento para proyectos con muchas dependencias
-- [ ] Documentación de usuario final más detallada (tutorial paso a paso)
+- [x] Shims globales en `~/.byper/bin/` (python3.12, pip3.12, etc.)
+- [x] Soporte Windows para descarga de runtimes
+- [x] Tests de rendimiento para proyectos con muchas dependencias
+- [x] Documentación de usuario final más detallada (tutorial paso a paso)
 
 ---
 
@@ -134,6 +140,7 @@ apps/python/byper/
 │       ├── lockfile.py            # Gestión del lockfile byper.lock
 │       ├── manifest.py            # Lectura/escritura de requirements.yaml
 │       ├── project_env.py         # Venv local, subprocess, get_required_python
+│       ├── python_runtime.py      # Descarga/instalación de Python desde python-build-standalone
 │       ├── python_version.py      # Parsing de versión, compatibilidad, constraints
 │       ├── tasks.py               # Ejecución de tareas
 │       └── utils/
@@ -144,6 +151,7 @@ apps/python/byper/
     ├── test_cli.py                # Tests de integración principales
     ├── test_python_cli.py         # Tests de versión de Python (CLI)
     ├── test_python_version.py     # Tests unitarios de version parsing
+    ├── test_python_runtime.py     # Tests unitarios de download/install de Python
     └── test_project_env.py        # Tests unitarios de project_env
 ```
 
@@ -172,10 +180,21 @@ apps/python/byper/
 
 ### Resolución de versión (Python)
 
-- `get_required_python()` en `project_env.py:18` → `parse_version_string()` en `python_version.py`
+- `get_required_python()` en `project_env.py:21` → `parse_version_string()` en `python_version.py`
 - Soporta: `"3.12"`, `"3.12.4"`, `">=3.12,<3.13"`, `"^3.12"`, `"~3.12.4"`
 - `is_compatible()` compara version triplet contra lista de constraints
-- `find_compatible_python()` busca intérpretes instalados que cumplan los constraints
+- `find_compatible_python()` busca intérpretes instalados + byper-managed que cumplan los constraints
+- `_byper_managed_candidates()` en `python_version.py` escanea `~/.byper/pythons/`
+- Si no hay intérprete compatible, `ensure_project_environment()` ofrece descarga automática
+
+### Resolución de Python runtimes
+
+- `byper python install <version>` → `python_runtime.install_runtime()`
+- Descarga desde GitHub Releases de `astral-sh/python-build-standalone` (portable, sin dependencias)
+- Detección de plataforma: `aarch64-apple-darwin`, `x86_64-unknown-linux-gnu`, etc.
+- Extrae a `~/.byper/pythons/<version>/`
+- `_parse_version_from_filename()` extrae la versión del nombre del asset
+- `resolve_runtime()` busca el mejor runtime byper-manejado que satisfaga un requirement
 
 ### Resolución de paquetes
 
@@ -219,6 +238,9 @@ packages:
 
 | Fecha | Cambio |
 |---|---|
+| 2026-07-03 | `byper python install <v>`, `byper python use <v>`, `byper python list` |
+| 2026-07-03 | Descarga automática de Python al ejecutar `byper install` sin intérprete compatible |
+| 2026-07-03 | Suprimido mensaje `[notice] A new release of pip is available` (env var + flag) |
 | 2026-07-03 | Removido `byper.aliases` y `byper.awaiter` |
 | 2026-07-03 | Nuevo formato de lockfile: keys `name@version`, metadata por paquete |
 | 2026-07-03 | Lockfile: detección legacy, `direct`/`transitive`, `integrity` sha256 |
