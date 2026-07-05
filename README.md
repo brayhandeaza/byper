@@ -2,6 +2,7 @@
   <img 
     src="https://raw.githubusercontent.com/brayhandeaza/byper/main/apps/python/byper/assests/logo-no-bg.png" 
     alt="Byper logo" 
+    style="border-radius: 100%"
     width="100"
     height="100"
   >
