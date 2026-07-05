@@ -9,7 +9,6 @@
 
 <h1 style="padding-bottom: 20px" align="center">Byper</h1>
 
-
 Byper is a **Python environment and workflow manager**. Each project uses its
 own local environment ( `packages/` ), a declarative manifest ( `requirements.yaml` ), 
 and a reproducible lockfile ( `byper.lock` ). You don't need to activate or
