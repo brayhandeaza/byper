@@ -3,7 +3,7 @@ name = "byper"
 version = "0.0.0"
 description = "A Python terminal console logging utility"
 authors = [{ name = "Brayhan De Aza" }]
-# readme = "README.md"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "colorama==0.4.6",
@@ -22,7 +22,9 @@ dev = [
 [tool.pytest.ini_options]
 markers = [
     "network: tests that require network access",
+    "performance: slow performance/benchmark tests (not run by default)",
 ]
+addopts = "-m 'not performance'"
 
 [project.scripts]
 byper = "byper.main:cli"

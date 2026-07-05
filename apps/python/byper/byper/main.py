@@ -90,8 +90,18 @@ def cli():
     elif args.command == "path":
         Commands.path()
 
+    elif args.command == "use":
+        Commands.use(args.target)
+
     elif args.command == "python":
-        Commands.python_info()
+        if hasattr(args, "python_command") and args.python_command == "install":
+            Commands.python_install(args.python_version)
+        elif hasattr(args, "python_command") and args.python_command == "use":
+            Commands.python_use(args.python_version)
+        elif hasattr(args, "python_command") and args.python_command == "list":
+            Commands.python_list()
+        else:
+            Commands.python_info()
 
     elif args.command == "reset":
         Commands.reset(args.yes)

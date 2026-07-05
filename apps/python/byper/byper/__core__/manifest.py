@@ -18,13 +18,17 @@ class Manifest:
     @staticmethod
     def save_manifest(data: dict):
         name = data.pop("name", None)
+        description = data.pop("description", None)
         version = data.pop("version", None)
         entry = data.pop("entry", None)
+        author = data.pop("author", None)
         license = data.pop("license", None)
+        python = data.pop("python", None)
 
         scripts = data.pop("scripts", None)
         aliases = data.pop("aliases", None)
         tasks = data.pop("tasks", None)
+        env = data.pop("env", None)
         dependencies = data.pop("dependencies", None)
 
         if aliases:
@@ -35,12 +39,16 @@ class Manifest:
 
         manifest = {
             "name": name,
+            "description": description,
             "version": version,
             "entry": entry,
+            "author": author,
             "license": license,
+            "python": python,
 
             "scripts": scripts,
             "tasks": tasks,
+            "env": env,
             "dependencies": dependencies,
             **data,
         }

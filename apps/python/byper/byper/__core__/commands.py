@@ -229,7 +229,20 @@ class Commands:
         remove_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
 
         subparsers.add_parser("path", help="Show project paths")
-        subparsers.add_parser("python", help="Show project Python info")
+
+        use_parser = subparsers.add_parser("use", help="Configure project settings (e.g. python@3.12)")
+        use_parser.add_argument("target", help="Target to use (e.g. python@3.12)")
+
+        python_parser = subparsers.add_parser("python", help="Manage Python runtimes")
+        python_sub = python_parser.add_subparsers(dest="python_command")
+
+        python_install = python_sub.add_parser("install", help="Install a Python runtime")
+        python_install.add_argument("python_version", help="Python version (e.g. 3.12, 3.12.8)")
+
+        python_use = python_sub.add_parser("use", help="Set Python version for this project")
+        python_use.add_argument("python_version", help="Python version (e.g. 3.12, 3.12.8)")
+
+        python_sub.add_parser("list", help="List installed Python runtimes")
 
         reset_parser = subparsers.add_parser("reset", help="Rebuild packages/")
         reset_parser.add_argument("-y", "--yes", action="store_true", help="Skip confirmation prompt")
@@ -272,6 +285,7 @@ class Commands:
         Logger.log("Commands:",                           level="info")
 
         Logger.log("byper init [name] [-y]                Initialize Byper project", indent=2, level="command")
+        Logger.log("byper use python@<version>            Set Python version for this project", indent=2, level="command")
         Logger.log("byper build                           Build distribution packages", indent=2, level="command")
         Logger.log("byper add <packages> [--no-cache]     Add package(s) to dependencies", indent=2, level="command")
         Logger.log("byper remove <packages>               Remove package(s) from dependencies", indent=2, level="command")
@@ -280,6 +294,7 @@ class Commands:
         Logger.log("byper task <name>                     Run a custom Byper task", indent=2, level="command")
         Logger.log("byper tree                            Print directory tree", indent=2, level="command")
         Logger.log("byper list                            List installed packages", indent=2, level="command")
+        Logger.log("byper python <install|use|list>       Manage Python runtimes", indent=2, level="command")
         Logger.log("byper cache <list|clear|dir>          Manage pip cache", indent=2, level="command")
         Logger.log("byper doctor [--fix] [--yes]          Run dependencies diagnostics", indent=2, level="command")
         Logger.log("byper refresh                         Refresh environment packages", indent=2, level="command")
@@ -733,6 +748,81 @@ class Commands:
                     "  byper reset",
                     level="error",
                 )
+
+    @staticmethod
+    def use(target: str):
+        if target.startswith("python@"):
+            version = target.split("@", 1)[1]
+            Commands.python_use(version)
+        else:
+            Logger.log(f"❌ Unknown target: {target}", level="error")
+            Logger.log("Usage: byper use python@<version>", level="command")
+
+    @staticmethod
+    def python_install(python_version: str):
+        from byper.__core__.python_runtime import format_install_message, install_runtime
+
+        try:
+            resolved, path = install_runtime(python_version)
+            Logger.log(format_install_message(resolved, path), level="command")
+        except RuntimeError as e:
+            Logger.log(f"❌ {e}", level="error")
+            Logger.log(
+                f"Retry: byper python install {python_version}",
+                level="command",
+            )
+
+    @staticmethod
+    def python_use(python_version: str):
+        from byper.__core__.python_runtime import install_runtime, resolve_runtime
+        from byper.__core__.python_version import parse_version_string
+
+        requirement = parse_version_string(python_version)
+
+        resolved_runtime = resolve_runtime(requirement)
+        if resolved_runtime is None:
+            Logger.log(
+                f"No Python {python_version} found in byper-managed runtimes.",
+                level="warn",
+            )
+            if Commands._confirm_action(f"Download and install Python {python_version} now?"):
+                try:
+                    resolved, _ = install_runtime(python_version)
+                except RuntimeError as e:
+                    Logger.log(f"❌ {e}", level="error")
+                    return
+            else:
+                Logger.log(
+                    f"Install it manually: byper python install {python_version}",
+                    level="command",
+                )
+                return
+
+        manifest = Manifest.load_requirements_manifest()
+        manifest["python"] = python_version
+        Manifest.save_manifest(manifest)
+        Logger.log(f"✅ requirements.yaml → python: \"{python_version}\"", level="success")
+        Logger.log(
+            "Run 'byper install' to create the environment with this Python version.",
+            level="command",
+        )
+
+    @staticmethod
+    def python_list():
+        from byper.__core__.python_runtime import list_installed_runtimes
+
+        runtimes = list_installed_runtimes()
+        if not runtimes:
+            Logger.log("No Python runtimes installed.", level="command")
+            Logger.log(
+                f"Install one with: byper python install <version>",
+                level="command",
+            )
+            return
+
+        Logger.log("Python runtimes:", level="success")
+        for version, path in sorted(runtimes.items()):
+            Logger.log(f"  Python {version} → {path}", level="command", indent=1)
 
     @staticmethod
     def _confirm_action(prompt: str, yes: bool = False) -> bool:

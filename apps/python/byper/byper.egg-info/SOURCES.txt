@@ -25,6 +25,7 @@ byper/__core__/installation.py
 byper/__core__/lockfile.py
 byper/__core__/manifest.py
 byper/__core__/project_env.py
+byper/__core__/python_runtime.py
 byper/__core__/python_version.py
 byper/__core__/tasks.py
 byper/__core__/constants/__init__.py
@@ -38,6 +39,8 @@ byper/tasks/__init__.py
 byper/tasks/__init__.pyi
 byper/tasks/__module__.py
 tests/test_cli.py
+tests/test_performance.py
 tests/test_project_env.py
 tests/test_python_cli.py
+tests/test_python_runtime.py
 tests/test_python_version.py

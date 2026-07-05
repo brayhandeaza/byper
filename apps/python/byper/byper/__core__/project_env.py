@@ -35,6 +35,26 @@ def get_required_python() -> Optional["Requirement"]:
         sys.exit(1)
 
 
+def get_required_python_raw() -> Optional[str]:
+    """Return the raw python version string from the manifest, if any."""
+    from byper.__core__.manifest import Manifest
+
+    manifest = Manifest.load_requirements_manifest()
+    raw = manifest.get("python")
+    if not raw:
+        return None
+    return str(raw)
+
+
+def _confirm(prompt: str) -> bool:
+    """Ask the user for confirmation."""
+    try:
+        answer = input(f"{prompt} [y/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return False
+    return answer in ("y", "yes")
+
+
 def get_project_python_version_info(
     project_root: Optional[Path | str] = None,
 ) -> tuple[tuple[int, int, int], str] | None:
@@ -208,6 +228,7 @@ def build_project_env(
 
     env["VIRTUAL_ENV"] = str(packages)
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
+    env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 
     existing_pythonpath = env.get("PYTHONPATH", "")
     if existing_pythonpath:
@@ -216,6 +237,27 @@ def build_project_env(
         env["PYTHONPATH"] = str(BYPER_PACKAGE_ROOT)
 
     return env
+
+
+def _record_python_version(version_info: tuple[int, ...]) -> None:
+    """Record the Python version in requirements.yaml if not already set.
+
+    Saves ``python: "X.Y"`` using the major.minor of *version_info*.
+    """
+    from byper.__core__.manifest import Manifest
+
+    manifest = Manifest.load_requirements_manifest()
+    if manifest.get("python"):
+        return
+
+    major = version_info[0]
+    minor = version_info[1]
+    manifest["python"] = f"{major}.{minor}"
+    Manifest.save_manifest(manifest)
+    Logger.log(
+        f"📝 Recorded python: \"{major}.{minor}\" in {REQUIREMENTS_FILE}",
+        level="command",
+    )
 
 
 def ensure_project_environment(project_root: Optional[Path | str] = None) -> Path:
@@ -243,7 +285,43 @@ def ensure_project_environment(project_root: Optional[Path | str] = None) -> Pat
             executable, version_info, impl = find_compatible_python(required)
         except PythonNotFoundError as exc:
             Logger.log(f"❌ {exc}", level="error")
-            sys.exit(1)
+
+            raw_version = get_required_python_raw()
+            if raw_version is not None:
+                Logger.log(
+                    f"\nByper can download Python {raw_version} automatically "
+                    f"from python-build-standalone.",
+                    level="command",
+                )
+                if _confirm(f"Download and install Python {raw_version} now?"):
+                    try:
+                        from byper.__core__.python_runtime import (
+                            get_runtime_python,
+                            install_runtime,
+                        )
+                        resolved, installed_dir = install_runtime(str(raw_version))
+                        executable = [str(get_runtime_python(installed_dir))]
+                        version_info = tuple(int(p) for p in resolved.split("."))
+                        if len(version_info) < 3:
+                            version_info = version_info + (0,) * (3 - len(version_info))
+                        version_info = version_info[:3]
+                        impl = "CPython"
+                    except RuntimeError as rt_err:
+                        Logger.log(f"❌ Could not download Python: {rt_err}", level="error")
+                        Logger.log(
+                            f"Install Python {describe_requirement(required)} manually and run 'byper install'.",
+                            level="command",
+                        )
+                        sys.exit(1)
+                else:
+                    Logger.log(
+                        f"Install Python {describe_requirement(required)} manually:\n"
+                        "  https://www.python.org/downloads/",
+                        level="command",
+                    )
+                    sys.exit(1)
+            else:
+                sys.exit(1)
 
         resolved = format_version(version_info)
         Logger.log(
@@ -252,10 +330,14 @@ def ensure_project_environment(project_root: Optional[Path | str] = None) -> Pat
         )
     else:
         executable = [sys.executable]
+        version_info = sys.version_info[:3]
+        impl = "CPython"
 
     Logger.log(f"📦 Creando environment local: {packages}", level="install")
     subprocess.check_call(executable + ["-m", "venv", str(packages)])
     Logger.log("✅ Environment creado", level="success")
+
+    _record_python_version(version_info)
 
     # Install byper into the project environment so env/tasks work in project subprocesses.
     Logger.log("📦 Instalando byper en el environment local", level="install")
@@ -268,7 +350,7 @@ def ensure_project_environment(project_root: Optional[Path | str] = None) -> Pat
 def _install_byper_into_project(project_root: Path) -> None:
     """Make the ``byper`` package importable inside the project's venv."""
     source_root = _find_byper_project_root()
-    project_pip = [str(get_project_python(project_root)), "-m", "pip", "install", "--quiet"]
+    project_pip = [str(get_project_python(project_root)), "-m", "pip", "--disable-pip-version-check", "install", "--quiet"]
 
     if source_root is not None:
         subprocess.check_call(project_pip + ["-e", str(source_root)])

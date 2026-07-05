@@ -96,6 +96,31 @@ def test_list_uses_project_pip(initialized_project: Path):
     assert "Package" in result.stdout
 
 
+def test_list_output_suppresses_pip_notice(initialized_project: Path):
+    result = run_byper("list", cwd=initialized_project)
+    assert "[notice] A new release of pip" not in result.stdout
+    assert "A new release of pip" not in result.stderr
+
+
+def test_add_output_suppresses_pip_notice(initialized_project: Path):
+    result = run_byper("add", "colorama", cwd=initialized_project)
+    assert "[notice] A new release of pip" not in result.stdout
+    assert "A new release of pip" not in result.stderr
+
+
+def test_remove_output_suppresses_pip_notice(initialized_project: Path):
+    run_byper("add", "colorama", cwd=initialized_project)
+    result = run_byper("remove", "colorama", cwd=initialized_project)
+    assert "[notice] A new release of pip" not in result.stdout
+    assert "A new release of pip" not in result.stderr
+
+
+def test_wheel_output_suppresses_pip_notice(initialized_project: Path):
+    result = run_byper("wheel", "colorama", cwd=initialized_project, check=False)
+    assert "[notice] A new release of pip" not in result.stdout
+    assert "A new release of pip" not in result.stderr
+
+
 def test_run_script_uses_project_python(initialized_project: Path):
     (initialized_project / "requirements.yaml").write_text(
         "name: test\nversion: 0.0.1\nentry: main.py\nlicense: MIT\n\nscripts:\n  who: python -c \"import sys; print(sys.executable)\"\n"
@@ -478,4 +503,30 @@ def test_add_offline_flag_accepted(initialized_project: Path):
     result = run_byper("add", "--offline", "some-package-xyz", cwd=initialized_project, check=False)
     combined = result.stdout + result.stderr
     assert "Offline" in combined
+
+
+# ---------------------------------------------------------------------------
+# Python runtime management
+# ---------------------------------------------------------------------------
+
+def test_python_list_no_runtimes(initialized_project: Path):
+    result = run_byper("python", "list", cwd=initialized_project)
+    assert result.returncode == 0
+    assert "Python runtimes" in result.stdout
+
+
+def test_python_info_no_subcommand(initialized_project: Path):
+    result = run_byper("python", cwd=initialized_project)
+    assert result.returncode == 0
+    assert "Requirement:" in result.stdout
+
+
+def test_python_install_help(initialized_project: Path):
+    result = run_byper("python", "install", "--help", cwd=initialized_project, check=False)
+    assert "python_version" in result.stdout
+
+
+def test_python_use_help(initialized_project: Path):
+    result = run_byper("python", "use", "--help", cwd=initialized_project, check=False)
+    assert "python_version" in result.stdout
 

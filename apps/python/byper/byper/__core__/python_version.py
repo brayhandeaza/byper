@@ -197,6 +197,28 @@ def _candidate_commands() -> list[list[str]]:
         for name in ("python3", "python"):
             candidates.append([name])
 
+    candidates.extend(_byper_managed_candidates())
+
+    return candidates
+
+
+def _byper_managed_candidates() -> list[list[str]]:
+    """Return Python executables from byper-managed runtimes in ~/.byper/pythons/."""
+    from byper.__core__.constants import BYPER_PYTHONS_DIR
+
+    if not BYPER_PYTHONS_DIR.exists():
+        return []
+
+    candidates: list[list[str]] = []
+    for entry in sorted(BYPER_PYTHONS_DIR.iterdir(), reverse=True):
+        if not entry.is_dir():
+            continue
+        python_path = entry / "bin" / ("python.exe" if IS_WINDOWS else "python")
+        if not python_path.exists():
+            python_path = entry / ("python.exe" if IS_WINDOWS else "python")
+        if python_path.exists():
+            candidates.append([str(python_path)])
+
     return candidates
 
 

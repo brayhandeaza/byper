@@ -8,7 +8,7 @@ from packaging.utils import canonicalize_name
 from ruamel.yaml import YAML
 
 from byper.__core__.constants import LOCKFILE_NAME, get_lockfile_path
-from byper.__core__.project_env import find_project_root, run_project_python
+from byper.__core__.project_env import find_project_root, run_project_pip, run_project_python
 
 if TYPE_CHECKING:
     from byper.__core__.utils.logger import Logger
@@ -127,8 +127,8 @@ def _collect_dependencies(name: str) -> dict:
 def _get_installed_version_map() -> dict:
     """Return {normalized_name: version_str} for packages in the project venv."""
     try:
-        result = run_project_python(
-            ["-m", "pip", "list", "--format=json"],
+        result = run_project_pip(
+            ["list", "--format=json"],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             text=True,
