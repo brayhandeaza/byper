@@ -10,7 +10,7 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 - [x] `byper init [name] [-y]` — inicializar proyecto (wizard interactivo o no)
 - [x] `byper install [--offline]` — instalar dependencias desde `requirements.yaml` o lockfile
-- [x] `byper add <pkg> [--upgrade] [--no-cache] [--offline]` — añadir paquete
+- [x] `byper install [packages] [--upgrade] [--no-cache] [--offline]` — instalar dependencias o paquetes específicos
 - [x] `byper remove <pkg>` — eliminar paquete
 - [x] `byper list [--outdated | --freeze | --cache]` — listar paquetes
 - [x] `byper tree` — árbol de directorios (oculta `packages/`)
@@ -77,7 +77,7 @@ Byper es un **environment/project workflow manager** para Python. Usa `venv` par
 
 ### Red y resiliencia
 
-- [x] `--offline` flag en `byper install` y `byper add`
+- [x] `--offline` flag en `byper install`
 - [x] Reintentos con backoff exponencial al resolver versiones en PyPI
 - [x] Mensajes de error claros para fallos de red vs paquete no encontrado
 - [x] `NetworkError` y `PackageNotFoundError` como excepciones explícitas
@@ -165,9 +165,9 @@ apps/python/byper/
 6. Cada paquete: `resolve_installable_version()` → PyPI → `run_project_pip(["install", ...])`
 7. Sync lockfile con `LockfileManager.sync_lockfile()`
 
-### Flujo de `byper add <pkg>`
+### Flujo de `byper install <pkg>`
 
-1. `main.py` → `Commands.add_package()` → `Installation.install()`
+1. `main.py` → `Commands.install()` con paquetes → `Installation.install()`
 2. Resuelve versión en PyPI con `_fetch_pypi_releases()` (retry con backoff)
 3. Instala solo el paquete nuevo (no reinstala todo)
 4. Actualiza `requirements.yaml` y `byper.lock`

@@ -107,7 +107,7 @@ packages:
 
 La clave principal es `packages`. Si está corrupto o usa otra clave, `byper install` muestra un error claro.
 
-## Flujo de `byper add`
+## Flujo de `byper install <pkg>`
 
 1. Valida que existe el environment local.
 2. Instala solo el paquete nuevo con `run_project_pip(["install", ...])`.
@@ -151,7 +151,7 @@ También se inyectan en `os.environ`. Soportan carga desde un archivo `.env` med
 
 - `byper build` usa `packages/bin/python -m build`.
 - `byper publish` usa `packages/bin/python -m twine upload ...`.
-- Si `build` o `twine` no están instalados en el environment local, Byper muestra un mensaje claro indicando cómo instalarlos (`byper add build`, `byper add twine`).
+- Si `build` o `twine` no están instalados en el environment local, Byper muestra un mensaje claro indicando cómo instalarlos (`byper install build`, `byper install twine`).
 
 ## Cómo correr tests
 

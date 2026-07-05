@@ -4,6 +4,7 @@ Version: 0.0.0
 Summary: A Python terminal console logging utility
 Author: Brayhan De Aza
 Requires-Python: >=3.12
+Description-Content-Type: text/markdown
 Requires-Dist: colorama==0.4.6
 Requires-Dist: requests==2.32.3
 Requires-Dist: ruamel.yaml==0.17.21

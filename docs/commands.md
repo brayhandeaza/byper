@@ -5,7 +5,7 @@
 | `byper` | Instala las dependencias del `requirements.yaml` actual |
 | `byper install [--offline]` | Igual que arriba; usa `Lockfile` si está sincronizado. `--offline` instala solo del caché local |
 | `byper init [nombre] [-y]` | Crea un proyecto nuevo |
-| `byper add [--offline] [--upgrade] [--no-cache] <pkg>` | Añade/instala un paquete. `--offline` usa solo caché local |
+| `byper install [packages] [--offline] [--upgrade] [--no-cache]` | Instala dependencias desde `requirements.yaml` o los paquetes especificados |
 | `byper remove <pkg>` | Elimina un paquete |
 | `byper run <script>` | Ejecuta un script del manifesto |
 | `byper task <nombre>` | Ejecuta una tarea del manifesto |

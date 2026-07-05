@@ -26,7 +26,7 @@ pip install byper
 Or from source:
 
 ```bash
-git clone <repo>
+git clone https://github.com/brayhandeaza/byper.git
 cd byper/apps/python/byper
 pip install -e .
 ```
@@ -97,19 +97,19 @@ Python from `packages/`.
 ### 4. Add more dependencies
 
 ```bash
-byper add pydantic
+byper install pydantic
 ```
 
 With an exact version:
 
 ```bash
-byper add "pydantic==2.9.0"
+byper install "pydantic==2.9.0"
 ```
 
 Upgrade a package:
 
 ```bash
-byper add requests --upgrade
+byper install requests --upgrade
 ```
 
 Remove:
@@ -281,7 +281,7 @@ lockfile for a faster, reproducible install.
 | Command | Description |
 |---|---|
 | `byper install [--offline]` | Install/update dependencies from `requirements.yaml` |
-| `byper add <pkg> [--upgrade] [--offline] [--no-cache]` | Add and install a package |
+| `byper install [packages] [--upgrade] [--offline] [--no-cache]` | Install dependencies or specific packages |
 | `byper remove <pkg>` | Remove a package |
 | `byper run <script>` | Run a manifest script |
 | `byper task <name>` | Run a manifest task |
@@ -315,8 +315,8 @@ cd my-api
 byper python use 3.12
 
 # 4. Add dependencies
-byper add fastapi
-byper add "uvicorn[standard]"
+byper install fastapi
+byper install "uvicorn[standard]"
 
 # 5. Write code in main.py
 # ...
