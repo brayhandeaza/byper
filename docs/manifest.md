@@ -1,13 +1,13 @@
-# Formato del manifesto `requirements.yaml`
+# Manifest Format of `requirements.yaml`
 
-El archivo `requirements.yaml` es el manifesto YAML del proyecto.
+The `requirements.yaml` file is the YAML project manifest.
 
 ```yaml
-name: mi-proyecto
+name: my-project
 version: 0.0.1
-description: Descripción opcional
+description: Optional description
 entry: main.py
-author: Tu nombre
+author: Your name
 license: MIT
 
 scripts:
@@ -28,30 +28,30 @@ dependencies:
   fastapi: 0.116.1
 ```
 
-## Campos soportados
+## Supported fields
 
 - `name`, `version`, `description`, `entry`, `author`, `license`
-- `scripts`: comandos de shell que se ejecutan con `byper run <nombre>`
-- `tasks`: secuencias de pasos que se ejecutan con `byper task <nombre>`
-- `env`: variables de entorno inline o cargadas desde `from_file`
-- `dependencies`: paquete y versión (se resuelve contra PyPI si no está instalado)
-- `python`: versión de Python requerida. Formatos:
-  - `"3.12"` → `>=3.12,<3.13` (cualquier 3.12.x)
-  - `"3.12.4"` → `==3.12.4` (versión exacta)
-  - `">=3.12,<3.13"` → rango con operadores
-  - `">=3.12"` → mínimo
-  - `"<3.13"` → máximo
+- `scripts`: shell commands executed with `byper run <name>`
+- `tasks`: sequences of steps executed with `byper task <name>`
+- `env`: environment variables inline or loaded from `from_file`
+- `dependencies`: package and version (resolved against PyPI if not installed)
+- `python`: Python version required. Formats:
+  - `"3.12"` → `>=3.12,<3.13` (any 3.12.x)
+  - `"3.12.4"` → `==3.12.4` (exact version)
+  - `">=3.12,<3.13"` → range with operators
+  - `">=3.12"` → minimum
+  - `"<3.13"` → maximum
   - `"^3.12"` → compatible release (`>=3.12,<3.13`)
   - `"~3.12.4"` → tilde range (`>=3.12.4,<3.13`)
 
-## Relación con `byper.lock`
+## Relationship with `byper.lock`
 
 ```
-requirements.yaml  = intención del proyecto (lo que el usuario declara)
-byper.lock         = resolución exacta generada (metadata por paquete)
-packages/          = environment físico local (venv)
+requirements.yaml  = project intention (what the user declares)
+byper.lock         = generated exact resolution (package metadata)
+packages/          = physical local environment (venv)
 ```
 
-El lockfile usa formato estructurado con keys `"name@version"` e incluye
-`source`, `resolved`, `integrity`, `direct`, `group` y `dependencies`
-para cada paquete. Ver `docs/ESTADO.md` para detalles.
+The lockfile uses a structured format with keys `"name@version"` and includes
+`source`, `resolved`, `integrity`, `direct`, `group`, and `dependencies`
+for each package. See `docs/ESTADO.md` for details.

@@ -1,107 +1,107 @@
-# Estado actual de Byper
+# Byper Current State
 
-Byper es un **environment/project workflow manager** para Python. Usa `venv` para crear un environment local `packages/`, `pip` para instalar dependencias, y `requirements.yaml` como manifesto.
+Byper is an **environment/project workflow manager** for Python. It uses `venv` to create a local `packages/` environment, `pip` to install dependencies, and `requirements.yaml` as a manifest.
 
 ---
 
-## Checklist de implementación
+## Implementation Checklist
 
-### Gestión de proyecto
+### Project management
 
-- [x] `byper init [name] [-y]` — inicializar proyecto (wizard interactivo o no)
-- [x] `byper install [--offline]` — instalar dependencias desde `requirements.yaml` o lockfile
-- [x] `byper install [packages] [--upgrade] [--no-cache] [--offline]` — instalar dependencias o paquetes específicos
-- [x] `byper remove <pkg>` — eliminar paquete
-- [x] `byper list [--outdated | --freeze | --cache]` — listar paquetes
-- [x] `byper tree` — árbol de directorios (oculta `packages/`)
-- [x] `byper reset [-y]` — reconstruir `packages/` desde cero
-- [x] `byper path` — mostrar rutas del proyecto
-- [x] `byper <archivo.py>` — ejecutar archivo Python con el environment local
+- [x] `byper init [name] [-y]` — initialize project (interactive wizard or non-interactive)
+- [x] `byper install [--offline]` — install dependencies from `requirements.yaml` or lockfile
+- [x] `byper install [packages] [--upgrade] [--no-cache] [--offline]` — install dependencies or specific packages
+- [x] `byper remove <pkg>` — remove package
+- [x] `byper list [--outdated | --freeze | --cache]` — list packages
+- [x] `byper tree` — directory tree hiding `packages/`
+- [x] `byper reset [-y]` — rebuild `packages/` from scratch
+- [x] `byper path` — show project paths
+- [x] `byper <archivo.py>` — execute Python file with the local environment
 
-### Scripts y tareas
+### Scripts and tasks
 
-- [x] `byper run <script>` — ejecutar script del manifesto
-- [x] `byper task <name>` — ejecutar tarea (secuencia de pasos)
-- [x] Pasos `{ file: ruta.py }` — ejecutar archivo Python
-- [x] Pasos `{ call: modulo.func, args: [...], kwargs: {...} }` — llamar función
+- [x] `byper run <script>` — execute script from the manifest
+- [x] `byper task <name>` — execute task (sequence of steps)
+- [x] Steps `{ file: ruta.py }` — execute Python file
+- [x] Steps `{ call: modulo.func, args: [...], kwargs: {...} }` — call function
 
-### Environment y variables
+### Environment and variables
 
-- [x] `byper env` — variables de entorno desde `requirements.yaml`
-- [x] `from byper.env import DEBUG` — import dinámico de variables
-- [x] Soporte `from_file: .env` — carga desde archivo `.env`
-- [x] Inyección automática en `os.environ`
-- [x] `byper refresh` — regenerar stubs `.pyi` de tasks/env
+- [x] `byper env` — environment variables from `requirements.yaml`
+- [x] `from byper.env import DEBUG` — dynamic variable import
+- [x] Support `from_file: .env` — load from `.env` file
+- [x] Automatic injection into `os.environ`
+- [x] `byper refresh` — regenerate `.pyi` stubs for tasks/env
 
-### Versión de Python
-- [x] Campo `python` en `requirements.yaml` con formato simple: `"3.12"`, `"3.12.4"`
-- [x] Operadores de comparación: `>=3.12,<3.13`, `>=3.12`, `<3.13`, etc.
-- [x] Caret (`^3.12`) y tilde (`~3.12.4`)
-- [x] Validación de compatibilidad del environment existente
-- [x] `byper python` — mostrar info de versión del proyecto
-- [x] `byper python install <version>` — descargar e instalar Python runtime desde python-build-standalone
-- [x] `byper python use <version>` — configurar `python: "<version>"` en `requirements.yaml`
-- [x] `byper python list` — listar runtimes instalados por byper en `~/.byper/pythons/`
-- [x] Descarga automática de Python al ejecutar `byper install` si no hay intérprete compatible (pregunta interactiva)
-- [x] `byper doctor` — diagnóstico incluyendo requisito y versión de Python
-- [x] `byper doctor --fix` — reparar problemas automáticamente (incl. reconstruir env)
-- [x] Lockfile registra `python.required`, `python.resolved`, `python.implementation`
-- [x] RANGOS DE VERSIÓN DE PYTHON MÁS EXPRESIVOS
+### Python version
+- [x] `python` field in `requirements.yaml` with simple format: `"3.12"`, `"3.12.4"`
+- [x] Comparison operators: `>=3.12,<3.13`, `>=3.12`, `<3.13`, etc.
+- [x] Caret (`^3.12`) and tilde (`~3.12.4`)
+- [x] Validation of existing environment compatibility
+- [x] `byper python` — show project version info
+- [x] `byper python install <version>` — download and install Python runtime from python-build-standalone
+- [x] `byper python use <version>` — configure `python: "<version>"` in `requirements.yaml`
+- [x] `byper python list` — list Python runtimes installed by Byper in `~/.byper/pythons/`
+- [x] Automatic Python download when executing `byper install` without compatible interpreter (interactive prompt)
+- [x] `byper doctor` — diagnosis including Python requirement and version
+- [x] `byper doctor --fix` — automatically fix issues (including rebuild environment)
+- [x] Lockfile registers `python.required`, `python.resolved`, `python.implementation`
+- [x] MORE EXPANSIVE PYTHON VERSION RANGES
 
 ### Lockfile
 
-- [x] `byper.lock` — lockfile en YAML con keys `"name@version"` y metadata estructurada
-- [x] Campos `name`, `version`, `source`, `resolved`, `integrity`, `direct`, `group`, `dependencies`
-- [x] `direct: true` para dependencias de `requirements.yaml`, `false` para transitivas
-- [x] Generación basada en grafo: solo paquetes alcanzables desde las raíces
-- [x] Usa `packages/bin/python` para leer metadata, nunca el intérprete global
-- [x] `packaging.utils.canonicalize_name` para normalizar nombres
-- [x] `integrity: "sha256:..."` y `resolved` URL desde PyPI JSON API
-- [x] Detección de lockfile legacy (`{name: version_str}`) con auto-regeneración
-- [x] Instalación desde lockfile si está sincronizado con `requirements.yaml`
-- [x] Sección `python` con `required`, `resolved`, `implementation`
+- [x] `byper.lock` — YAML lockfile with keys `"name@version"` and structured metadata
+- [x] Fields `name`, `version`, `source`, `resolved`, `integrity`, `direct`, `group`, `dependencies`
+- [x] `direct: true` for dependencies from `requirements.yaml`, `false` for transitive ones
+- [x] Graph-based generation: only packages reachable from the roots
+- [x] Uses `packages/bin/python` to read metadata, never the global interpreter
+- [x] `packaging.utils.canonicalize_name` for name normalization
+- [x] `integrity: "sha256:..."` and `resolved` URL from PyPI JSON API
+- [x] Legacy lockfile detection (`{name: version_str}`) with auto-regeneration
+- [x] Installation from lockfile if synced with `requirements.yaml`
+- [x] `python` section with `required`, `resolved`, `implementation`
 
-### Build y publicación
+### Build and publication
 
-- [x] `byper build` — compilar con `python -m build` usando el Python del proyecto
-- [x] `byper publish` — subir a PyPI con twine
-- [x] `byper login` / `byper logout` — gestionar credenciales PyPI
-- [x] Detección de `build`/`twine` faltantes con mensajes claros
+- [x] `byper build` — build with `python -m build` using the project's Python
+- [x] `byper publish` — upload to PyPI using twine
+- [x] `byper login` / `byper logout` — manage PyPI credentials
+- [x] Detection of missing `build`/`twine` with clear messages
 
-### Cache y wheels
+### Cache and wheels
 
-- [x] `byper cache <list|clear|dir>` — administrar caché de pip
-- [x] `byper wheel <pkg>` — construir wheel para un paquete
-- [x] `PIP_DISABLE_PIP_VERSION_CHECK=1` en todas las llamadas internas a pip
-- [x] `--disable-pip-version-check` flag explícito en `run_project_pip()`
+- [x] `byper cache <list|clear|dir>` — administer pip cache
+- [x] `byper wheel <pkg>` — build wheel for a package
+- [x] `PIP_DISABLE_PIP_VERSION_CHECK=1` on all internal pip calls
+- [x] Explicit `--disable-pip-version-check` flag in `run_project_pip()`
 
-### Red y resiliencia
+### Network and resilience
 
-- [x] `--offline` flag en `byper install`
-- [x] Reintentos con backoff exponencial al resolver versiones en PyPI
-- [x] Mensajes de error claros para fallos de red vs paquete no encontrado
-- [x] `NetworkError` y `PackageNotFoundError` como excepciones explícitas
-- [x] SOPORTE OFFLINE CON WHEEL CACHE — ✅ IMPLEMENTADO
+- [x] `--offline` flag on `byper install`
+- [x] Retries with exponential backoff when resolving versions on PyPI
+- [x] Clear error messages for network failures vs package not found
+- [x] `NetworkError` and `PackageNotFoundError` as explicit exceptions
+- [x] OFFLINE SUPPORT WITH WHEEL CACHE — ✅ IMPLEMENTED
 
 ### Tests
 
-- [x] Tests de ciclo de vida (init, install, add, remove)
-- [x] Tests de lockfile (escritura, lectura, corrupción)
-- [x] Tests de scripts, tareas y env
-- [x] Tests de build y publish
-- [x] Tests de doctor, doctor --fix, reset
-- [x] Tests de versión de Python (parsing, compatibilidad, constraints)
-- [x] Tests de modo offline
-- [x] Tests de mensajes de error
+- [x] Lifecycle tests (init, install, add, remove)
+- [x] Lockfile tests (writing, reading, corruption)
+- [x] Tests for scripts, tasks and env
+- [x] Tests for build and publish
+- [x] Tests for doctor, doctor --fix, reset
+- [x] Tests for Python version (parsing, compatibility, constraints)
+- [x] Tests for offline mode
+- [x] Tests for error messages
 
-### Documentación
+### Documentation
 
-- [x] `docs/manifest.md` — formato de `requirements.yaml`
-- [x] `docs/commands.md` — todos los comandos del CLI
-- [x] `docs/tasks-and-env.md` — tareas y env
-- [x] `docs/development.md` — arquitectura para contribuidores
-- [x] `docs/publishing.md` — build y publish
-- [x] `docs/ESTADO.md` — este documento
+- [x] `docs/manifest.md` — `requirements.yaml` format
+- [x] `docs/commands.md` — all CLI commands
+- [x] `docs/tasks-and-env.md` — tasks and env
+- [x] `docs/development.md` — architecture for contributors
+- [x] `docs/publishing.md` — build and publish
+- [x] `docs/ESTADO.md` — this document
 
 ---
 

@@ -1,29 +1,29 @@
-# Compilar y publicar
+# Build and Publish
 
-## Compilar
+## Build
 
-Requiere que exista el entorno `packages/`:
+Requires the `packages/` environment to exist:
 
 ```bash
 byper build
 ```
 
-Usa `packages/bin/python -m build`.
+Uses `packages/bin/python -m build`.
 
-## Publicar en PyPI
+## Publish to PyPI
 
-1. Configura credenciales:
+1. Configure credentials:
 
 ```bash
 byper login
 ```
 
-Esto guarda el token en `~/.pypirc`.
+This saves the token in `~/.pypirc`.
 
-2. Publica:
+2. Publish:
 
 ```bash
 byper publish
 ```
 
-`publish` usa el `python` del PATH para correr `twine`, no `packages/bin/python`.
+`publish` uses the `python` from the PATH to run `twine`, not `packages/bin/python`.

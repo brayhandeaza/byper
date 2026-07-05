@@ -1,79 +1,79 @@
-# Desarrollo de Byper
+# Byper Development
 
-## Qué es Byper
+## What is Byper
 
-Byper es un **environment/project workflow manager** para Python. No es un package manager nuevo ni reemplaza a pip, PyPI ni los virtual environments de Python. Byper se construye encima del ecosistema real de Python:
+Byper is an **environment/project workflow manager** for Python. It is not a new package manager and does not replace pip, PyPI, or Python's virtual environments. Byper is built on top of Python's existing ecosystem:
 
-- Usa `venv` para crear el environment local del proyecto (`packages/`).
-- Usa `pip` para instalar dependencias desde PyPI.
-- Usa `requirements.yaml` como manifesto práctico, similar a `package.json`.
-- El usuario no necesita activar manualmente el environment.
-- Todo corre a través del comando `byper`.
+- Uses `venv` to create the project's local environment (`packages/`).
+- Uses `pip` to install dependencies from PyPI.
+- Uses `requirements.yaml` as a practical manifest, similar to `package.json`.
+- The user does not need to manually activate the environment.
+- Everything runs through the `byper` command.
 
-## Qué NO es Byper
+## What Byper is NOT
 
-- No reemplaza `pip`.
-- No reemplaza `venv` / `virtualenv`.
-- No reemplaza PyPI.
-- No es un runtime de Python propio.
+- Does not replace `pip`.
+- Does not replace `venv` / `virtualenv`.
+- Does not replace PyPI.
+- It is not a Python runtime of its own.
 
-## Arquitectura de environments
+## Environments Architecture
 
-Hay dos environments distintos:
+There are two distinct environments:
 
-1. **Environment donde está instalado el CLI de Byper**
-   - Normalmente es el Python global o un environment del sistema.
-   - Aquí vive el comando `byper` y sus dependencias (`colorama`, `requests`, `packaging`, etc.).
+1. **Environment where the Byper CLI is installed**
+   - Normally the global Python or a system environment.
+   - This is where the `byper` command and its dependencies (`colorama`, `requests`, `packaging`, etc.) live.
 
-2. **Environment local del proyecto (`packages/`)**
-   - Byper lo crea automáticamente en la raíz del proyecto.
-- Aquí se instalan las dependencias del proyecto.
-- Aquí también se instala Byper mismo en modo editable, para que los imports `from byper.env import ...` y `from byper.tasks import ...` funcionen dentro del proyecto.
+2. **Project local environment (`packages/`)**
+   - Byper creates this automatically in the project root.
+ - This is where the project's dependencies are installed.
+ - Byper itself is also installed in editable mode in this environment so that imports like `from byper.env import ...` and `from byper.tasks import ...` work within the project.
 
-Regla arquitectónica principal:
+Main architectural rule:
 
-> Todo comando relacionado al proyecto debe usar internamente el Python del environment local `packages/`, nunca el Python global del PATH.
+> All project-related commands must internally use the Python from the local environment `packages/`, never the global Python from the PATH.
 
-## Detección del root del proyecto
+## Project root detection
 
-Byper busca el archivo `requirements.yaml` subiendo desde el directorio de trabajo actual. Si lo encuentra, esa carpeta es el root del proyecto. Si no, asume el directorio actual como root.
+Byper searches for the `requirements.yaml` file by walking up from the current working directory. If found, that folder is the project root. If not, it assumes the current directory as the root.
 
-Helpers en `byper/__core__/project_env.py`:
+Helpers in `byper/__core__/project_env.py`:
 
 - `find_project_root()`
 - `get_packages_dir()`
 - `get_project_python()`
 - `get_project_bin_dir()`
 
-## Creación del environment local
+## Creation of the local environment
 
-Cuando se ejecuta `byper init` o cualquier comando que necesite el environment, Byper:
+When `byper init` or any command that requires the environment is executed, Byper:
 
-1. Crea un venv con `python -m venv packages/`.
-2. Instala Byper en modo editable dentro de ese venv para que los imports de env/tasks funcionen.
+1. Creates a venv with `python -m venv packages/`.
+2. Installs Byper in editable mode in that venv so that env/tasks imports work.
 
-## Ejecución de Python dentro del project environment
+## Running Python within the project environment
 
-Todos los subprocess de proyecto corren con:
+All project subprocesses run with:
 
-- `VIRTUAL_ENV` apuntando a `packages/`.
-- `packages/bin` (o `packages/Scripts` en Windows) al inicio de `PATH`.
-- `PYTHONPATH` incluyendo el root del paquete Byper.
+- `VIRTUAL_ENV` pointing to `packages/`.
+- `packages/bin` (or `packages/Scripts` on Windows) at the beginning of `PATH`.
+- `PYTHONPATH` includes the Byper package root.
 
 Helpers:
 
-- `run_project_python(args)` → corre `packages/bin/python <args>`.
-- `run_project_pip(args)` → corre `packages/bin/python -m pip <args>`.
-- `run_in_project(cmd)` → corre un comando shell con el environment activado.
+- `run_project_python(args)` → runs `packages/bin/python <args>`.
+- `run_project_pip(args)` → runs `packages/bin/python -m pip <args>`.
+- `run_in_project(cmd)` → runs a shell command with the environment activated.
 
-## Formato de `requirements.yaml`
+## Format of `requirements.yaml`
 
 ```yaml
-name: mi-proyecto
+name: my-project
 version: 0.0.1
-description: Descripción opcional
+description: Optional description
 entry: main.py
-author: Tu nombre
+author: Your name
 license: MIT
 
 scripts:
@@ -93,11 +93,11 @@ dependencies:
   requests: 2.32.5
 ```
 
-Campos soportados: `name`, `version`, `description`, `entry`, `author`, `license`, `scripts`, `tasks`, `env`, `dependencies`.
+Supported fields: `name`, `version`, `description`, `entry`, `author`, `license`, `scripts`, `tasks`, `env`, `dependencies`.
 
-## Formato del lockfile
+## Lockfile format
 
-El lockfile se llama `Lockfile` (sin extensión) y usa YAML:
+The lockfile is called `Lockfile` (no extension) and uses YAML:
 
 ```yaml
 packages:
@@ -105,61 +105,61 @@ packages:
   colorama: 0.4.6
 ```
 
-La clave principal es `packages`. Si está corrupto o usa otra clave, `byper install` muestra un error claro.
+The main key is `packages`. If it's corrupt or uses a different key, `byper install` shows a clear error.
 
-## Flujo de `byper install <pkg>`
+## Flow of `byper install <pkg>`
 
-1. Valida que existe el environment local.
-2. Instala solo el paquete nuevo con `run_project_pip(["install", ...])`.
-3. Lee la versión final instalada.
-4. Actualiza `requirements.yaml`.
-5. Actualiza `Lockfile`.
-6. Respeta `--upgrade` y `--no-cache`.
+1. Validates that the local environment exists.
+2. Installs only the new package with `run_project_pip(["install", ...])`.
+3. Reads the final installed version.
+4. Updates `requirements.yaml`.
+5. Updates `Lockfile`.
+6. Respects `--upgrade` and `--no-cache`.
 
-## Flujo de `byper install`
+## Flow of `byper install`
 
-1. Si existe `Lockfile` válido y sincronizado con `requirements.yaml`, instala desde el lockfile.
-2. Si no existe lockfile, instala desde `requirements.yaml` y genera el lockfile.
-3. Si el lockfile está corrupto, muestra error claro.
-4. No reinstala paquetes que ya están presentes con la versión correcta.
+1. If a valid `Lockfile` exists and is synced with `requirements.yaml`, install from the lockfile.
+2. If no lockfile exists, install from `requirements.yaml` and generate the lockfile.
+3. If the lockfile is corrupt, shows a clear error.
+4. Does not reinstall packages that are already present with the correct version.
 
-## Flujo de `byper run`
+## Flow of `byper run`
 
-1. Lee el script desde `requirements.yaml`.
-2. Ejecuta el comando shell con `run_in_project`, de modo que `python` se resuelva al Python del environment local.
+1. Reads the script from `requirements.yaml`.
+2. Executes the shell command with `run_in_project`, so that `python` resolves to the Python from the local environment.
 
-## Flujo de `byper task`
+## Flow of `byper task`
 
-Soporta varios tipos de pasos:
+Supports several types of steps:
 
-- Líneas de Python arbitrarias (ejecutadas en el proceso actual).
+- Lines of arbitrary Python (executed in the current process).
 - `byper run <script>`.
-- `{ file: "ruta.py" }` → ejecuta con `run_project_python`.
-- `{ call: "modulo.funcion", args: [...], kwargs: {...} }` → ejecuta la función dentro del Python del proyecto.
+- `{ file: "path/to/file.py" }` → executes with `run_project_python`.
+- `{ call: "module.function", args: [...], kwargs: {...} }` → executes the function within the project Python.
 
 ## Env
 
-Las variables de entorno definidas en `requirements.yaml` pueden importarse:
+Environment variables defined in `requirements.yaml` can be imported:
 
 ```python
 from byper.env import DEBUG
 ```
 
-También se inyectan en `os.environ`. Soportan carga desde un archivo `.env` mediante `from_file`.
+They are also injected into `os.environ`. They support loading from a `.env` file using `from_file`.
 
 ## Build / Publish
 
-- `byper build` usa `packages/bin/python -m build`.
-- `byper publish` usa `packages/bin/python -m twine upload ...`.
-- Si `build` o `twine` no están instalados en el environment local, Byper muestra un mensaje claro indicando cómo instalarlos (`byper install build`, `byper install twine`).
+- `byper build` uses `packages/bin/python -m build`.
+- `byper publish` uses `packages/bin/python -m twine upload ...`.
+- If `build` or `twine` are not installed in the local environment, Byper shows a clear message indicating how to install them (`byper install build`, `byper install twine`).
 
-## Cómo correr tests
+## How to run tests
 
-Desde la raíz del repo o desde `apps/python/byper`:
+From the repo root or from `apps/python/byper`:
 
 ```bash
 cd apps/python/byper
 python -m pytest tests -v
 ```
 
-Los tests usan directorios temporales y verifican que los comandos usen el Python del environment local (`packages/bin/python`).
+Tests use temporary directories and verify that commands use the Python from the local environment (`packages/bin/python`).

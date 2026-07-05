@@ -1,26 +1,26 @@
-# Comandos del CLI
+# CLI Commands
 
 | Comando | Descripción |
 |---|---|
-| `byper` | Instala las dependencias del `requirements.yaml` actual |
-| `byper install [--offline]` | Igual que arriba; usa `Lockfile` si está sincronizado. `--offline` instala solo del caché local |
-| `byper init [nombre] [-y]` | Crea un proyecto nuevo |
-| `byper install [packages] [--offline] [--upgrade] [--no-cache]` | Instala dependencias desde `requirements.yaml` o los paquetes especificados |
-| `byper remove <pkg>` | Elimina un paquete |
-| `byper run <script>` | Ejecuta un script del manifesto |
-| `byper task <nombre>` | Ejecuta una tarea del manifesto |
-| `byper <archivo.py>` | Ejecuta un archivo Python con el entorno `packages/` |
-| `byper refresh` | Regenera stubs `.pyi` de tareas/env |
-| `byper build` | Compila el paquete con `python -m build` (usa `packages/bin/python`) |
-| `byper publish` | Sube a PyPI usando twine y `~/.pypirc` |
-| `byper login` | Guarda token de PyPI en `~/.pypirc` |
-| `byper logout` | Borra `~/.pypirc` |
-| `byper list [--outdated \| --freeze \| --cache]` | Lista paquetes instalados en `packages/` |
-| `byper cache <list\|clear\|dir>` | Administra la caché de pip |
-| `byper wheel <pkg>` | Construye una wheel para un paquete |
-| `byper doctor` | Diagnóstico del entorno |
-| `byper tree` | Muestra árbol de directorios ocultando `packages/` |
-| `byper --u-all` | Actualiza todos los paquetes obsoletos |
-| `byper -v`, `byper -h` | Versión y ayuda |
+| `byper` | Install the current `requirements.yaml` dependencies |
+| `byper install [--offline]` | Same as above; uses `Lockfile` if synced. `--offline` installs only from local cache |
+| `byper init [nombre] [-y]` | Creates a new project |
+| `byper install [packages] [--offline] [--upgrade] [--no-cache]` | Installs dependencies from `requirements.yaml` or specified packages |
+| `byper remove <pkg>` | Removes a package |
+| `byper run <script>` | Executes a script from the manifesto |
+| `byper task <nombre>` | Executes a task from the manifesto |
+| `byper <archivo.py>` | Executes a Python file with the `packages/` environment |
+| `byper refresh` | Regenerate `.pyi` stubs for tasks/env |
+| `byper build` | Builds the package with `python -m build` (uses `packages/bin/python`) |
+| `byper publish` | Uploads to PyPI using twine and `~/.pypirc` |
+| `byper login` | Saves PyPI token to `~/.pypirc` |
+| `byper logout` | Deletes `~/.pypirc` |
+| `byper list [--outdated \| --freeze \| --cache]` | Lists packages installed in `packages/` |
+| `byper cache <list\|clear\|dir>` | Administers the pip cache |
+| `byper wheel <pkg>` | Builds a wheel for a package |
+| `byper doctor` | Diagnoses the environment |
+| `byper tree` | Shows directory tree while hiding `packages/` |
+| `byper --u-all` | Updates all outdated packages |
+| `byper -v`, `byper -h` | Version and help |
 
-Todas las operaciones de proyecto usan el venv local `packages/` y su Python (`packages/bin/python`), nunca el Python global del PATH.
+All project operations use the local `packages/` venv and its Python (`packages/bin/python`), never the global Python from PATH.

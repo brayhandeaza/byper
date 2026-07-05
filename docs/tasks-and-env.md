@@ -1,8 +1,8 @@
-# Tareas y variables de entorno
+# Tasks and Environment Variables
 
-## Tareas
+## Tasks
 
-Son secuencias de pasos:
+They are sequences of steps:
 
 ```yaml
 tasks:
@@ -12,14 +12,14 @@ tasks:
     - { file: scripts/finalize.py }
 ```
 
-Soporta:
+Supports:
 
-- Líneas de Python arbitrarias
+- Lines of arbitrary Python
 - `byper run <script>`
-- `{ call: ruta.funcion, args: [...], kwargs: {...} }`
-- `{ file: ruta/archivo.py }`
+- `{ call: module.function, args: [...], kwargs: {...} }`
+- `{ file: path/to/file.py }`
 
-## Variables de entorno
+## Environment Variables
 
 ```yaml
 env:
@@ -27,10 +27,10 @@ env:
   DEBUG: "true"
 ```
 
-Se acceden con:
+They are accessed with:
 
 ```python
 from byper.env import DEBUG
 ```
 
-También se inyectan en `os.environ`.
+They are also injected into `os.environ`.

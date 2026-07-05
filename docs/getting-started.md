@@ -1,58 +1,58 @@
-# Primeros pasos
+# Getting Started
 
-## Instalar el CLI
+## Install the CLI
 
-Desde la raíz del repo:
+From the repo root:
 
 ```bash
 yarn make
 ```
 
-O manualmente:
+Or manually:
 
 ```bash
 cd apps/python/byper
 pip install . --no-cache-dir
 ```
 
-Esto instala el comando `byper` en el entorno Python activo (puede ser global).
+This installs the `byper` command into the active Python environment (it can be global).
 
-## Crear un proyecto
+## Create a project
 
 ```bash
-mkdir mi-proyecto
-cd mi-proyecto
+mkdir my-project
+cd my-project
 byper init
 ```
 
-Esto crea:
+This creates:
 
 - `requirements.yaml`
 - `main.py`
-- `packages/` (cuando instales dependencias)
+- `packages/` (when you install dependencies)
 
-## Instalar dependencias
+## Install dependencies
 
 ```bash
 byper
 ```
 
-o explícitamente:
+or explicitly:
 
 ```bash
 byper install
 ```
 
-## Ejecutar un script
+## Execute a script
 
-Define en `requirements.yaml`:
+Define in `requirements.yaml`:
 
 ```yaml
 scripts:
   start: python main.py
 ```
 
-Y corre:
+And run:
 
 ```bash
 byper run start

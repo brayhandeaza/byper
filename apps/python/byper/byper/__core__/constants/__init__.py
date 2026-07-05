@@ -5,7 +5,7 @@ ENVIRONMENT_DIRECTORY = "packages"
 REQUIREMENTS_FILE = "requirements.yaml"
 LOCKFILE_NAME = "byper.lock"
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 BYPER_HOME = Path(os.path.expanduser("~/.byper"))
 BYPER_PYTHONS_DIR = BYPER_HOME / "pythons"
