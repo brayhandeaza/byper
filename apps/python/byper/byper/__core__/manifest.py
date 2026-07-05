@@ -37,35 +37,47 @@ class Manifest:
                 level="warn",
             )
 
-        manifest = {
-            "name": name,
-            "description": description,
-            "version": version,
-            "entry": entry,
-            "author": author,
-            "license": license,
-            "python": python,
-
-            "scripts": scripts,
-            "tasks": tasks,
-            "env": env,
-            "dependencies": dependencies,
-            **data,
-        }
-
         yaml = YAML()
         yaml.preserve_quotes = True
         yaml.indent(mapping=2, sequence=4, offset=2)
         yaml.width = 4096
 
+        header_fields = [
+            ("name", name),
+            ("description", description),
+            ("version", version),
+            ("entry", entry),
+            ("author", author),
+            ("license", license),
+        ]
+
+        sections = [
+            ("scripts", scripts),
+            ("tasks", tasks),
+            ("env", env),
+            ("dependencies", dependencies),
+        ]
+
         with open(REQUIREMENTS_FILE, "w") as f:
-            for key, value in manifest.items():
+            for key, value in header_fields:
                 if not value:
                     continue
+                yaml.dump({key: value}, f)
 
-                if key in ["scripts", "tasks", "dependencies"]:
-                    f.write("\n")
+            if python:
+                f.write("\n")
+                yaml.dump({"python": python}, f)
 
+            for key, value in sections:
+                if not value:
+                    continue
+                f.write("\n")
+                yaml.dump({key: value}, f)
+
+            for key, value in data.items():
+                if not value:
+                    continue
+                f.write("\n")
                 yaml.dump({key: value}, f)
 
     @staticmethod
