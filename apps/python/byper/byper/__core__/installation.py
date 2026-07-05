@@ -131,7 +131,7 @@ class Installation:
                 if version is None and "==" not in package and ">=" not in package and "<=" not in package:
                     raise RuntimeError(
                         f"Could not resolve a compatible version for '{package}'. "
-                        "Try specifying a version: byper add {package}==1.0.0"
+                        f"Try specifying a version: byper install {package}==1.0.0"
                     )
 
             version_spec = f"=={version}" if version and not is_url else ""

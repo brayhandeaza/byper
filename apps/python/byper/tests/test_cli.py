@@ -38,7 +38,7 @@ class TestDependencyFlow:
     PACKAGE = "colorama"
 
     def test_add_updates_requirements_and_lockfile(self, initialized_project: Path):
-        result = run_byper("add", self.PACKAGE, cwd=initialized_project)
+        result = run_byper("install", self.PACKAGE, cwd=initialized_project)
         assert result.returncode == 0
 
         requirements = (initialized_project / "requirements.yaml").read_text()
@@ -48,7 +48,7 @@ class TestDependencyFlow:
         assert f"{self.PACKAGE}:" in lockfile
 
     def test_add_installs_in_project_environment(self, initialized_project: Path):
-        run_byper("add", self.PACKAGE, cwd=initialized_project)
+        run_byper("install", self.PACKAGE, cwd=initialized_project)
         result = subprocess.run(
             [str(initialized_project / "packages" / "bin" / "python"), "-m", "pip", "show", self.PACKAGE],
             capture_output=True,
@@ -58,7 +58,7 @@ class TestDependencyFlow:
         assert f"Name: {self.PACKAGE}" in result.stdout
 
     def test_remove_updates_requirements_and_lockfile(self, initialized_project: Path):
-        run_byper("add", self.PACKAGE, cwd=initialized_project)
+        run_byper("install", self.PACKAGE, cwd=initialized_project)
         result = run_byper("remove", self.PACKAGE, cwd=initialized_project)
         assert result.returncode == 0
 
@@ -69,14 +69,14 @@ class TestDependencyFlow:
         assert self.PACKAGE not in lockfile
 
     def test_install_uses_lockfile_when_synced(self, initialized_project: Path):
-        run_byper("add", self.PACKAGE, cwd=initialized_project)
+        run_byper("install", self.PACKAGE, cwd=initialized_project)
         result = run_byper("install", cwd=initialized_project)
         assert result.returncode == 0
         assert "Installing from lockfile" in result.stdout
 
     def test_add_respects_upgrade(self, initialized_project: Path):
-        run_byper("add", f"{self.PACKAGE}==0.4.5", cwd=initialized_project)
-        result = run_byper("add", self.PACKAGE, "--upgrade", cwd=initialized_project)
+        run_byper("install", f"{self.PACKAGE}==0.4.5", cwd=initialized_project)
+        result = run_byper("install", self.PACKAGE, "--upgrade", cwd=initialized_project)
         assert result.returncode == 0
         version = (initialized_project / "requirements.yaml").read_text()
         assert "0.4.5" not in version or "0.4.6" in version
@@ -103,13 +103,13 @@ def test_list_output_suppresses_pip_notice(initialized_project: Path):
 
 
 def test_add_output_suppresses_pip_notice(initialized_project: Path):
-    result = run_byper("add", "colorama", cwd=initialized_project)
+    result = run_byper("install", "colorama", cwd=initialized_project)
     assert "[notice] A new release of pip" not in result.stdout
     assert "A new release of pip" not in result.stderr
 
 
 def test_remove_output_suppresses_pip_notice(initialized_project: Path):
-    run_byper("add", "colorama", cwd=initialized_project)
+    run_byper("install", "colorama", cwd=initialized_project)
     result = run_byper("remove", "colorama", cwd=initialized_project)
     assert "[notice] A new release of pip" not in result.stdout
     assert "A new release of pip" not in result.stderr
@@ -228,7 +228,7 @@ def test_aliases_warning_in_manifest(initialized_project: Path):
 # ---------------------------------------------------------------------------
 
 def test_lockfile_write_and_read(initialized_project: Path):
-    run_byper("add", "colorama", cwd=initialized_project)
+    run_byper("install", "colorama", cwd=initialized_project)
     lockfile = (initialized_project / "byper.lock").read_text()
     assert "packages:" in lockfile
     assert "colorama@0.4.6" in lockfile or "colorama@" in lockfile
@@ -239,7 +239,7 @@ def test_lockfile_write_and_read(initialized_project: Path):
 
 def test_lockfile_structured_format(initialized_project: Path):
     import yaml
-    run_byper("add", "colorama", cwd=initialized_project)
+    run_byper("install", "colorama", cwd=initialized_project)
     data = yaml.safe_load((initialized_project / "byper.lock").read_text())
     packages = data["packages"]
     # Find the colorama entry by key containing @
@@ -302,7 +302,7 @@ def test_lockfile_only_contains_graph_packages(initialized_project: Path):
 
 def test_lockfile_direct_vs_transitive(initialized_project: Path):
     import yaml
-    run_byper("add", "colorama", cwd=initialized_project)
+    run_byper("install", "colorama", cwd=initialized_project)
     data = yaml.safe_load((initialized_project / "byper.lock").read_text())
     for key, entry in data["packages"].items():
         if isinstance(entry, dict) and entry["name"] == "colorama":
@@ -349,7 +349,7 @@ def test_doctor_uses_project_pip(initialized_project: Path):
 @pytest.mark.network
 class TestBuildPublish:
     def test_build_uses_project_python(self, initialized_project: Path):
-        run_byper("add", "build", cwd=initialized_project)
+        run_byper("install", "build", cwd=initialized_project)
         (initialized_project / "pyproject.toml").write_text(
             "[project]\nname = \"demo\"\nversion = \"0.0.0\"\n"
         )
@@ -364,7 +364,7 @@ class TestBuildPublish:
         env["PATH"] = "/usr/bin:/bin"  # keep a minimal PATH so python itself still works
         result = run_byper("publish", cwd=initialized_project, check=False, env=env)
         combined = result.stdout + result.stderr
-        assert "byper add twine" in combined
+        assert "byper install twine" in combined
         assert "No such file or directory" not in combined
 
 
@@ -384,7 +384,7 @@ def test_cache_command_accessible(initialized_project: Path):
 
 @pytest.mark.network
 def test_add_nonexistent_package_fails(initialized_project: Path):
-    result = run_byper("add", "this-package-does-not-exist-12345", cwd=initialized_project, check=False)
+    result = run_byper("install", "this-package-does-not-exist-12345", cwd=initialized_project, check=False)
     assert result.returncode != 0 or "failed" in result.stdout.lower()
 
 
@@ -500,7 +500,7 @@ def test_install_offline_flag_accepted(initialized_project: Path):
 
 
 def test_add_offline_flag_accepted(initialized_project: Path):
-    result = run_byper("add", "--offline", "some-package-xyz", cwd=initialized_project, check=False)
+    result = run_byper("install", "--offline", "some-package-xyz", cwd=initialized_project, check=False)
     combined = result.stdout + result.stderr
     assert "Offline" in combined
 

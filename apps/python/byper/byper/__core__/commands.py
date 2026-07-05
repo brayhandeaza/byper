@@ -188,8 +188,12 @@ class Commands:
         parser.add_argument("--u-all", "--upgrade-all", action="store_true", help="Upgrade all packages to latest version")
         parser.add_argument("-v", "--version", help="Print byper version", action="store_true")
 
-        install_parser = subparsers.add_parser("install", help="Install dependencies")
+        install_parser = subparsers.add_parser("install", help="Install dependencies from requirements.yaml or specific packages")
         install_parser.add_argument("--offline", action="store_true", help="Install from cache only, no network")
+        install_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
+        install_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version")
+        install_parser.add_argument("packages", nargs="*", help="Specific packages to install and add to dependencies")
+        install_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
         subparsers.add_parser("tree", help="Print directory tree")
         subparsers.add_parser("login", help="PyPI login")
         subparsers.add_parser("logout", help="PyPI logout")
@@ -207,13 +211,6 @@ class Commands:
         init_parser = subparsers.add_parser("init", help="Initialize byper project")
         init_parser.add_argument("name", nargs="?", default=None)
         init_parser.add_argument("-y", action="store_true", help="Skip confirmation prompt")
-
-        add_parser = subparsers.add_parser("add", help="Add package to dependencies")
-        add_parser.add_argument("--no-cache", action="store_true", help="Don't use cached packages")
-        add_parser.add_argument("--offline", action="store_true", help="Install from cache only, no network")
-        add_parser.add_argument("--upgrade", "-u", action="store_true", help="Upgrade packages to latest version")
-        add_parser.add_argument("packages", nargs="+")
-        add_parser.add_argument("flags", nargs=argparse.REMAINDER, help="Additional flags")
 
         cache_parser = subparsers.add_parser("cache", help="Manage pip cache")
         cache_parser.add_argument("action", choices=["list", "clear", "dir"], help="Cache action")
@@ -287,9 +284,8 @@ class Commands:
         Logger.log("byper init [name] [-y]                Initialize Byper project", indent=2, level="command")
         Logger.log("byper use python@<version>            Set Python version for this project", indent=2, level="command")
         Logger.log("byper build                           Build distribution packages", indent=2, level="command")
-        Logger.log("byper add <packages> [--no-cache]     Add package(s) to dependencies", indent=2, level="command")
+        Logger.log("byper install [packages] [--offline]  Install dependencies or specific packages", indent=2, level="command")
         Logger.log("byper remove <packages>               Remove package(s) from dependencies", indent=2, level="command")
-        Logger.log("byper install                         Install dependencies", indent=2, level="command")
         Logger.log("byper run <script>                    Run script", indent=2, level="command")
         Logger.log("byper task <name>                     Run a custom Byper task", indent=2, level="command")
         Logger.log("byper tree                            Print directory tree", indent=2, level="command")
@@ -363,7 +359,7 @@ class Commands:
             Logger.log(f"❌ {package} failed to remove: {e}", level="error")
 
     @staticmethod
-    def add_package(package: str, download: bool = False, no_cache: bool = False, offline: bool = False, upgrade: bool = False, flags: str | None = None):
+    def install_package(package: str, download: bool = False, no_cache: bool = False, offline: bool = False, upgrade: bool = False, flags: str | None = None):
         Installation.install(package, download, no_cache, offline, upgrade, flags)
 
     @staticmethod
@@ -520,7 +516,7 @@ class Commands:
     def wheel(name: str):
         if not _has_module("wheel"):
             Logger.log("❌ 'wheel' is not installed in the project environment.", level="error")
-            Logger.log("   Run: byper add wheel", level="command")
+            Logger.log("   Run: byper install wheel", level="command")
             return
 
         result = run_project_pip(
@@ -644,7 +640,7 @@ class Commands:
 
         if not _has_module("build"):
             Logger.log("❌ 'build' is not installed in the project environment.", level="error")
-            Logger.log("   Run: byper add build", level="command")
+            Logger.log("   Run: byper install build", level="command")
             return False
 
         project_python = get_project_python()
@@ -676,7 +672,7 @@ class Commands:
 
         if not _has_module("twine"):
             Logger.log("❌ 'twine' is not installed in the project environment.", level="error")
-            Logger.log("   Run: byper add twine", level="command")
+            Logger.log("   Run: byper install twine", level="command")
             return
 
         build_ok = Commands.build(dist_dir)

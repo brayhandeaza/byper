@@ -36,14 +36,14 @@ def cli():
         ]
         Commands.list(flags)
 
-    elif args.command == "add":
-        download = "--download" in args.flags
-        flags = " ".join(args.flags or [])
-        for pkg in args.packages:
-            Commands.add_package(pkg, download, args.no_cache, args.offline, args.upgrade, flags)
-
     elif args.command == "install":
-        Commands.install(args.offline)
+        if args.packages:
+            download = "--download" in (args.flags or [])
+            flags = " ".join(args.flags or [])
+            for pkg in args.packages:
+                Commands.install_package(pkg, download, args.no_cache, args.offline, args.upgrade, flags)
+        else:
+            Commands.install(args.offline)
 
     elif args.command == "tree":
         Commands.print_directory_tree()
