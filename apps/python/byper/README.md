@@ -2,13 +2,13 @@
   <img 
     src="https://raw.githubusercontent.com/brayhandeaza/byper/main/apps/python/byper/assests/logo-no-bg.png" 
     alt="Byper logo" 
-    width="100"
-    height="100"
+    style="border-radius: 100%"
+    width="100px"
+    height="100px"
   >
 </p>
 
 <h1 style="padding-bottom: 20px" align="center">Byper</h1>
-
 
 Byper is a **Python environment and workflow manager**. Each project uses its
 own local environment ( `packages/` ), a declarative manifest ( `requirements.yaml` ), 
