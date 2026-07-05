@@ -6,11 +6,8 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # PARTICULAR PURPOSE.
 
 # This program built for i386-apple-darwin11.3.0
- 
-make: *** No rule to make target `all'.  Stop.
 
-
-# Make data base, printed on Thu Jul  2 21:06:21 2026
+# Make data base, printed on Sun Jul  5 19:16:29 2026
 
 # Variables
 
@@ -19,13 +16,9 @@ make: *** No rule to make target `all'.  Stop.
 # automatic
 ?F = $(notdir $?)
 # environment
-ELECTRON_NO_ATTACH_CONSOLE = 1
-# environment
 VSCODE_CRASH_REPORTER_PROCESS_TYPE = extensionHost
 # automatic
 ?D = $(patsubst %/,%,$(dir $?))
-# environment
-CPPFLAGS = -I/opt/homebrew/opt/llvm@14/include
 # automatic
 @D = $(patsubst %/,%,$(dir $@))
 # automatic
@@ -38,48 +31,28 @@ SHELL = /bin/sh
 VSCODE_NLS_CONFIG = {"userLocale":"en-us","osLocale":"en-us","resolvedLanguage":"en","defaultMessagesFile":"/Applications/Visual Studio Code.app/Contents/Resources/app/out/nls.messages.json","locale":"en-us","availableLanguages":{}}
 # environment
 _ = /usr/bin/make
-# environment
-_CONDA_EXE = /opt/miniconda3/bin/conda
 # makefile (from `makefile', line 1)
 MAKEFILE_LIST :=  makefile
 # environment
-DEBUG = release
-# environment
 __CFBundleIdentifier = com.microsoft.VSCode
 # environment
-INFOPATH = /opt/homebrew/share/info:
+VSCODE_CWD = /
 # environment
-VSCODE_CWD = /Users/brayhandeaza/Documents/dev/projects/portafolio
+PATH = /usr/bin:/bin:/usr/sbin:/sbin
 # environment
-PATH = /opt/homebrew/opt/llvm@14/bin:/opt/homebrew/opt/llvm@21/bin:/opt/homebrew/opt/mysql@8.4/bin:/Users/brayhandeaza/.juliaup/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/llvm@16/bin:/opt/homebrew/opt/llvm@14/bin:/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/homebrew/Caskroom/anaconda/2025.06-0/anaconda3/bin:/Users/brayhandeaza/.console-ninja/.bin:/Users/brayhandeaza/.npm-global/bin:/Library/Frameworks/Python.framework/Versions/3.14/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/brayhandeaza/.juliaup/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/usr/local/go/bin:/Users/brayhandeaza/.lmstudio/bin:/Users/brayhandeaza/.lmstudio/bin
-# environment
-LSCOLORS = Gxfxcxdxbxegedabagacad
-# environment
-FPATH = /Users/brayhandeaza/.docker/completions:/Users/brayhandeaza/.oh-my-zsh/plugins/git:/Users/brayhandeaza/.oh-my-zsh/functions:/Users/brayhandeaza/.oh-my-zsh/completions:/Users/brayhandeaza/.oh-my-zsh/custom/functions:/Users/brayhandeaza/.oh-my-zsh/custom/completions:/Users/brayhandeaza/.oh-my-zsh/cache/completions:/opt/homebrew/share/zsh/site-functions:/usr/local/share/zsh/site-functions:/usr/share/zsh/site-functions:/usr/share/zsh/5.9/functions
-# environment
-LaunchInstanceID = 0A3040EA-EA32-43C7-8C8F-FDEA65616C61
+LaunchInstanceID = 26535BF3-7AB8-4098-8362-DD1A6CA64A3E
 # environment
 ELECTRON_RUN_AS_NODE = 1
-# environment
-LDFLAGS = -L/opt/homebrew/opt/llvm@14/lib
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-LS_COLORS = di=1;36:ln=35:so=32:pi=33:ex=31:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;43
-# environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.59IU5Aiejh/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.q9euWGoAET/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
-CONDA_EXE = /opt/miniconda3/bin/conda
-# environment
 PWD = /Users/brayhandeaza/Documents/dev/projects/portafolio/byper
 # environment
-HOMEBREW_CELLAR = /opt/homebrew/Cellar
-# environment
 OSLogRateLimit = 64
-# environment
-PKG_CONFIG_PATH = /opt/homebrew/opt/llvm@14/lib/pkgconfig
 # environment
 MANPATH = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/share/man:/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/usr/share/man:/Applications/Xcode.app/Contents/Developer/usr/share/man:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/man:
 # environment
@@ -87,61 +60,37 @@ HOME = /Users/brayhandeaza
 # default
 MAKEFILEPATH := /Applications/Xcode.app/Contents/Developer/Makefiles
 # environment
-VSCODE_CLI = 1
-# environment
 VSCODE_CODE_CACHE_PATH = /Users/brayhandeaza/Library/Application Support/Code/CachedData/7e7950df89d055b5a378379db9ee14290772148a
 # environment
 LOGNAME = brayhandeaza
 # environment
 APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
 # environment
-CONDA_PROMPT_MODIFIER = (base) 
-# environment
-NVM_CD_FLAGS = -q
-# environment
-ZSH = /Users/brayhandeaza/.oh-my-zsh
-# environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
 # automatic
 ^D = $(patsubst %/,%,$(dir $^))
 # environment
-CONDA_DEFAULT_ENV = base
-# environment
 XPC_FLAGS = 0x0
-# environment
-COLORTERM = truecolor
-# environment
-LLVM_CONFIG = /opt/homebrew/opt/llvm@14/bin/llvm-config
+# default
+MAKE = $(MAKE_COMMAND)
 # default
 MAKECMDGOALS := all
 # environment
-SHLVL = 3
+SHLVL = 1
 # environment
 VSCODE_ESM_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
-# environment
-LLVM_DIR = /opt/homebrew/opt/llvm@14
 # default
 MAKE_VERSION := 3.81
 # environment
 USER = brayhandeaza
 # makefile
 .DEFAULT_GOAL := start
-# environment
-TERM_SESSION_ID = 7C1811F7-426B-4C8B-B649-213C8325C456
-# default
-MAKE = $(MAKE_COMMAND)
-# environment
-LESS = -R
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # environment
 MACH_PORT_RENDEZVOUS_PEER_VALDATION = 1
-# environment
-CONDA_SHLVL = 1
 # default
 MAKE_COMMAND := /Applications/Xcode.app/Contents/Developer/usr/bin/make
-# environment
-TERM_PROGRAM = Apple_Terminal
 # default
 .VARIABLES := 
 # environment
@@ -159,21 +108,11 @@ MFLAGS = -Rrqp
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
-TERM_PROGRAM_VERSION = 466
-# environment
-NVM_DIR = /Users/brayhandeaza/.nvm
-# environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.226352021.226352027.46E93743-BA07-4D41-9678-B136B5C7F3B4
-# environment
-HOMEBREW_PREFIX = /opt/homebrew
+XPC_SERVICE_NAME = application.com.microsoft.VSCode.226352021.226352027
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # automatic
 +F = $(notdir $+)
-# environment
-HOMEBREW_REPOSITORY = /opt/homebrew
-# environment
-_CONDA_ROOT = /opt/miniconda3
 # environment
 __CF_USER_TEXT_ENCODING = 0x1F5:0x0:0x0
 # environment
@@ -183,11 +122,7 @@ MAKEFILES :=
 # automatic
 <F = $(notdir $<)
 # environment
-PAGER = less
-# environment
 LC_ALL = C
-# environment
-CONDA_PYTHON_EXE = /opt/miniconda3/bin/python
 # environment
 SECURITYSESSIONID = 186b6
 # automatic
@@ -199,15 +134,11 @@ SUFFIXES :=
 # environment
 MAKELEVEL := 0
 # environment
-CONDA_PREFIX = /opt/miniconda3
-# environment
-TERM = xterm-256color
-# environment
-VSCODE_PID = 97902
-# environment
 LANG = C
+# environment
+VSCODE_PID = 675
 # variable set hash-table stats:
-# Load=96/1024=9%, Rehash=0, Collisions=3/120=2%
+# Load=63/1024=6%, Rehash=0, Collisions=1/87=1%
 
 # Pattern-specific Variable Values
 
@@ -215,9 +146,9 @@ LANG = C
 
 # Directories
 
-# . (device 16777228, inode 228173095): 15 files, no impossibilities.
+# . (device 16777234, inode 228173095): 17 files, no impossibilities.
 
-# 15 files, no impossibilities in 1 directories.
+# 17 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -265,7 +196,6 @@ makefile:
 
 # Not a target:
 .DEFAULT:
- 
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
@@ -283,6 +213,8 @@ makefile:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Thu Jul  2 21:06:21 2026
+# Finished Make data base on Sun Jul  5 19:16:29 2026
 
  
+make: *** No rule to make target `all'.  Stop.
+
