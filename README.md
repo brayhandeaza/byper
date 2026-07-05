@@ -1,21 +1,27 @@
-# Byper
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/brayhandeaza/byper/main/apps/python/byper/assests/logo-no-bg.png" alt="Byper logo" width="200">
+  <img 
+    src="https://raw.githubusercontent.com/brayhandeaza/byper/main/apps/python/byper/assests/logo-no-bg.png" 
+    alt="Byper logo" 
+    width="100"
+    height="100"
+  >
 </p>
 
+<h1 style="padding-bottom: 20px" align="center">Byper</h1>
+
+
 Byper is a **Python environment and workflow manager**. Each project uses its
-own local environment (`packages/`), a declarative manifest (`requirements.yaml`),
-and a reproducible lockfile (`byper.lock`). You don't need to activate or
+own local environment ( `packages/` ), a declarative manifest ( `requirements.yaml` ), 
+and a reproducible lockfile ( `byper.lock` ). You don't need to activate or
 deactivate environments: every byper command automatically uses your project's
 Python and dependencies.
 
-- Local environment with `venv` (`packages/`)
-- Dependencies declared in `requirements.yaml`
-- Lockfile with hashes and PyPI metadata
-- Built-in Python version management
-- Scripts, tasks, and environment variables in a single file
-- Global shims in `~/.byper/bin/`
+* Local environment with `venv` (`packages/`)
+* Dependencies declared in `requirements.yaml`
+* Lockfile with hashes and PyPI metadata
+* Built-in Python version management
+* Scripts, tasks, and environment variables in a single file
+* Global shims in `~/.byper/bin/`
 
 ---
 
@@ -62,7 +68,7 @@ my-project/
 
 ### 2. Install dependencies
 
-Edit `requirements.yaml`:
+Edit `requirements.yaml` :
 
 ```yaml
 name: my-project
@@ -95,8 +101,8 @@ Byper will:
 byper main.py
 ```
 
-No need for `source packages/bin/activate`; byper runs `main.py` with the
-Python from `packages/`.
+No need for `source packages/bin/activate` ; byper runs `main.py` with the
+Python from `packages/` .
 
 ### 4. Add more dependencies
 
@@ -126,7 +132,7 @@ byper remove requests
 
 ## Python version management
 
-You can pin the Python version in `requirements.yaml`:
+You can pin the Python version in `requirements.yaml` :
 
 ```yaml
 python: "3.12"          # any 3.12.x
@@ -136,7 +142,7 @@ python: "^3.12"         # compatible release
 ```
 
 If you don't have the required version, byper can download it automatically
-from `python-build-standalone`:
+from `python-build-standalone` :
 
 ```bash
 byper python install 3.12.8
@@ -154,11 +160,11 @@ Set a version for the project:
 byper python use 3.12
 ```
 
-This writes `python: "3.12"` to `requirements.yaml`.
+This writes `python: "3.12"` to `requirements.yaml` .
 
 ### Global shims
 
-Every time you install a runtime, byper creates shims in `~/.byper/bin/`:
+Every time you install a runtime, byper creates shims in `~/.byper/bin/` :
 
 ```
 ~/.byper/bin/python
@@ -188,7 +194,7 @@ setx PATH "%PATH%;%USERPROFILE%\.byper\bin"
 
 ## Scripts and tasks
 
-Define scripts in `requirements.yaml`:
+Define scripts in `requirements.yaml` :
 
 ```yaml
 scripts:
@@ -239,7 +245,7 @@ Access them from Python:
 from byper.env import DEBUG, API_URL
 ```
 
-They are also injected automatically into `os.environ`.
+They are also injected automatically into `os.environ` .
 
 Regenerate stubs so your editor recognizes them:
 
@@ -275,7 +281,7 @@ packages:
       charset-normalizer: ">=2.0.0,<4.0.0"
 ```
 
-When `byper.lock` is in sync with `requirements.yaml`, `byper install` uses the
+When `byper.lock` is in sync with `requirements.yaml` , `byper install` uses the
 lockfile for a faster, reproducible install.
 
 ---
@@ -291,7 +297,7 @@ lockfile for a faster, reproducible install.
 | `byper task <name>` | Run a manifest task |
 | `byper <file.py>` | Run a Python file with the local environment |
 | `byper list [--outdated \| --freeze \| --cache]` | List installed packages |
-| `byper tree` | Show directory tree (hiding `packages/`) |
+| `byper tree` | Show directory tree (hiding `packages/` ) |
 | `byper reset [-y]` | Rebuild `packages/` from scratch |
 | `byper doctor [--fix]` | Diagnose and repair the environment |
 | `byper build` | Build the package with `python -m build` |
@@ -352,19 +358,19 @@ my-project/
 └── tests/              # tests
 ```
 
-- Do not commit `packages/` to git.
-- Commit `requirements.yaml` and `byper.lock` for reproducibility.
+* Do not commit `packages/` to git.
+* Commit `requirements.yaml` and `byper.lock` for reproducibility.
 
 ---
 
 ## Additional documentation
 
-- `docs/manifest.md` — full `requirements.yaml` format
-- `docs/commands.md` — complete command reference
-- `docs/tasks-and-env.md` — tasks and environment variables
-- `docs/publishing.md` — build and publish to PyPI
-- `docs/development.md` — internal architecture for contributors
-- `docs/ESTADO.md` — current status and roadmap
+* `docs/manifest.md` — full `requirements.yaml` format
+* `docs/commands.md` — complete command reference
+* `docs/tasks-and-env.md` — tasks and environment variables
+* `docs/publishing.md` — build and publish to PyPI
+* `docs/development.md` — internal architecture for contributors
+* `docs/ESTADO.md` — current status and roadmap
 
 ---
 
@@ -378,5 +384,5 @@ cd apps/python/byper
 python -m pytest
 ```
 
-Performance tests (`pytest -m performance`) require network access and are not
+Performance tests ( `pytest -m performance` ) require network access and are not
 run by default.

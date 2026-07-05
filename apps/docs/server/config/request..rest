@@ -1,5 +1,0 @@
-
-GET /simple/beautifulsoup4/ HTTP/1.1
-Host: pypi.org
-Accept: application/vnd.pypi.simple.v1+json
-SSL-Client-Verify: REQUIRED
