@@ -1,5 +1,9 @@
 # Byper
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/brayhandeaza/byper/main/apps/python/byper/assests/logo-no-bg.png" alt="Byper logo" width="200">
+</p>
+
 Byper is a **Python environment and workflow manager**. Each project uses its
 own local environment (`packages/`), a declarative manifest (`requirements.yaml`),
 and a reproducible lockfile (`byper.lock`). You don't need to activate or
