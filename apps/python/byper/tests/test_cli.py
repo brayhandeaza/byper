@@ -369,6 +369,40 @@ class TestBuildPublish:
 
 
 # ---------------------------------------------------------------------------
+# Missing environment handling
+# ---------------------------------------------------------------------------
+
+def _write_minimal_manifest(project_root: Path) -> None:
+    (project_root / "requirements.yaml").write_text(
+        "name: demo\nversion: 0.0.1\n"
+    )
+
+
+def test_build_fails_without_environment(empty_project: Path):
+    _write_minimal_manifest(empty_project)
+    result = run_byper("build", cwd=empty_project, check=False)
+    combined = result.stdout + result.stderr
+    assert "Run 'byper install' first" in combined
+    assert "Traceback" not in combined
+
+
+def test_publish_fails_without_environment(empty_project: Path):
+    _write_minimal_manifest(empty_project)
+    result = run_byper("publish", cwd=empty_project, check=False)
+    combined = result.stdout + result.stderr
+    assert "Run 'byper install' first" in combined
+    assert "Traceback" not in combined
+
+
+def test_wheel_fails_without_environment(empty_project: Path):
+    _write_minimal_manifest(empty_project)
+    result = run_byper("wheel", "colorama", cwd=empty_project, check=False)
+    combined = result.stdout + result.stderr
+    assert "Run 'byper install' first" in combined
+    assert "Traceback" not in combined
+
+
+# ---------------------------------------------------------------------------
 # Cache
 # ---------------------------------------------------------------------------
 

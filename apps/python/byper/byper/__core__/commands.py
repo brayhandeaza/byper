@@ -22,6 +22,7 @@ from byper.__core__.project_env import (
     get_project_python,
     get_project_python_version_info,
     get_required_python,
+    is_project_environment_ready,
     run_in_project,
     run_project_pip,
     run_project_python,
@@ -51,6 +52,17 @@ def _has_module(module: str) -> bool:
         text=True,
     )
     return result.returncode == 0
+
+
+def _require_project_environment() -> bool:
+    """Return True if the local project environment exists; log help otherwise."""
+    if not is_project_environment_ready():
+        Logger.log(
+            "❌ No local environment found. Run 'byper install' first.",
+            level="error",
+        )
+        return False
+    return True
 
 
 def _safely_remove_packages_dir(packages: Path) -> None:
@@ -514,6 +526,9 @@ class Commands:
 
     @staticmethod
     def wheel(name: str):
+        if not _require_project_environment():
+            return
+
         if not _has_module("wheel"):
             Logger.log("❌ 'wheel' is not installed in the project environment.", level="error")
             Logger.log("   Run: byper install wheel", level="command")
@@ -632,6 +647,9 @@ class Commands:
 
     @staticmethod
     def build(dist_dir="dist"):
+        if not _require_project_environment():
+            return False
+
         project_root = Path.cwd()
         dist_path = project_root / dist_dir
 
@@ -656,6 +674,9 @@ class Commands:
 
     @staticmethod
     def publish(dist_dir="dist"):
+        if not _require_project_environment():
+            return
+
         project_root = Path.cwd()
         dist_path = project_root / dist_dir
         pypirc = Path.home() / ".pypirc"
