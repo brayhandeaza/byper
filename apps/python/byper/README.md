@@ -1,19 +1,3 @@
-Metadata-Version: 2.4
-Name: byper
-Version: 0.0.2
-Summary: A Python terminal console logging utility
-Author: Brayhan De Aza
-Requires-Python: >=3.12
-Description-Content-Type: text/markdown
-Requires-Dist: colorama==0.4.6
-Requires-Dist: requests==2.32.3
-Requires-Dist: ruamel.yaml==0.17.21
-Requires-Dist: pyyaml==6.0.1
-Requires-Dist: dotenv==0.9.9
-Requires-Dist: packaging==24.2
-Provides-Extra: dev
-Requires-Dist: pytest==8.3.5; extra == "dev"
-
 # Byper
 
 Byper is a **Python environment and workflow manager**. Each project uses its

@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 byper/__init__.py
 byper/__main__.py
